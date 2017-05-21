@@ -42,6 +42,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         yAxis = (TextView) findViewById(R.id.yaxis);
         zAxis = (TextView) findViewById(R.id.zaxis);
 
+        
         Calendar c = Calendar.getInstance();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
         String datenow = sdf.format(c.getTime());
