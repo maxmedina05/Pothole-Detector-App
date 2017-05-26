@@ -30,6 +30,8 @@ ConnectionCallbacks, View.OnClickListener, LocationListener {
     // Variables
     private LocationRequest mLocationRequest;
     private File mFile;
+    private double mLastKnownLatitude;
+    private double mLastKnownLongitude;
     
     // GPS Interfaces
     GoogleApiClient mGoogleApiClient;
@@ -59,7 +61,7 @@ ConnectionCallbacks, View.OnClickListener, LocationListener {
         // Create the LocationRequest object
         mLocationRequest = LocationRequest.create()
                 .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
-                .setInterval(10 * 1000)        // 10 seconds, in milliseconds
+                .setInterval(5 * 1000)        // 10 seconds, in milliseconds
                 .setFastestInterval(1 * 1000); // 1 second, in milliseconds
         
         // Create an instance of GoogleAPIClient.
@@ -133,10 +135,11 @@ ConnectionCallbacks, View.OnClickListener, LocationListener {
 
     private void handleNewLocation(Location location) {
       Log.d(LOG_TAG, location.toString());
-      double currentLatitude = location.getLatitude();
-      double currentLongitude = location.getLongitude();
-      updateUI(currentLatitude, currentLongitude);
-      saveDataToCSV(currentLatitude, currentLongitude);
+      
+      mLastKnownLatitude = location.getLatitude();
+      mLastKnownLongitude = location.getLongitude();
+      updateUI(mLastKnownLatitude, mLastKnownLongitude);
+      
     }
 
     private void updateUI(double latitude, double longitude) {
@@ -160,6 +163,6 @@ ConnectionCallbacks, View.OnClickListener, LocationListener {
 
     @Override
     public void onClick(View v) {
-      LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
+      saveDataToCSV(mLastKnownLatitude, mLastKnownLongitude);
     }
 }
