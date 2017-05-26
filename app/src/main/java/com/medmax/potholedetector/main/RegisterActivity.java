@@ -28,8 +28,8 @@ ConnectionCallbacks, View.OnClickListener, LocationListener {
     private final static int CONNECTION_FAILURE_RESOLUTION_REQUEST = 9000;
     
     // Variables
-    private Location mLastKnownLocation;
     private LocationRequest mLocationRequest;
+    private File mFile;
     
     // GPS Interfaces
     GoogleApiClient mGoogleApiClient;
@@ -43,6 +43,11 @@ ConnectionCallbacks, View.OnClickListener, LocationListener {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register);
+
+        // makefile
+        mFile = new File(
+        this.getExternalFilesDir(Environment.MEDIA_MOUNTED),
+        "potholes.csv");
 
         // connect ui
         mBtnRegister = (Button) findViewById(R.id.btn_register);
@@ -131,11 +136,26 @@ ConnectionCallbacks, View.OnClickListener, LocationListener {
       double currentLatitude = location.getLatitude();
       double currentLongitude = location.getLongitude();
       updateUI(currentLatitude, currentLongitude);
+      saveDataToCSV(currentLatitude, currentLongitude);
     }
 
     private void updateUI(double latitude, double longitude) {
         mTvLongitude.setText(String.valueOf(longitude));
         mTvLatitude.setText(String.valueOf(latitude));
+    }
+
+    private void saveDataToCSV(double latitude, double longitude) {
+      String deviceName = Build.MANUFACTURER + " " + Build.MODEL;
+      String currentDate = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss").format(Calendar.getInstance().getTime());
+      
+      try (BufferedWriter bwriter = new BufferedWriter(new FileWriter(mFile, true))) {
+          bwriter.write(String.format("%s, %s, %f, %f", currentDate, deviceName, longitude, latitude));
+          bwriter.newLine();
+          bwriter.close();
+          
+      } catch (IOException e) {
+          Log.e(LOG_TAG, e.toString());
+      }
     }
 
     @Override
