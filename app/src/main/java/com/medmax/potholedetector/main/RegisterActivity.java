@@ -1,15 +1,9 @@
 package com.medmax.potholedetector.main;
 
-import android.Manifest;
-import android.content.IntentSender;
-import android.content.pm.PackageManager;
 import android.location.Location;
-import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -19,32 +13,24 @@ import android.widget.TextView;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
-import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.LocationListener;
 import com.medmax.potholedetector.R;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-
 import static com.google.android.gms.common.api.GoogleApiClient.Builder;
 import static com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
 
-public class RegisterActivity extends AppCompatActivity implements OnConnectionFailedListener,
-        ConnectionCallbacks, View.OnClickListener, LocationListener {
+public class RegisterActivity extends AppCompatActivity implements OnConnectionFailedListener, 
+ConnectionCallbacks, View.OnClickListener, LocationListener {
 
     // Constants
     private static final String LOG_TAG = "RegisterActivity";
     private final static int CONNECTION_FAILURE_RESOLUTION_REQUEST = 9000;
-
+    
     // Variables
     private LocationRequest mLocationRequest;
     private File mFile;
-
+    
     // GPS Interfaces
     GoogleApiClient mGoogleApiClient;
 
@@ -60,8 +46,8 @@ public class RegisterActivity extends AppCompatActivity implements OnConnectionF
 
         // makefile
         mFile = new File(
-                this.getExternalFilesDir(Environment.MEDIA_MOUNTED),
-                "potholes.csv");
+        this.getExternalFilesDir(Environment.MEDIA_MOUNTED),
+        "potholes.csv");
 
         // connect ui
         mBtnRegister = (Button) findViewById(R.id.btn_register);
@@ -75,7 +61,7 @@ public class RegisterActivity extends AppCompatActivity implements OnConnectionF
                 .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
                 .setInterval(10 * 1000)        // 10 seconds, in milliseconds
                 .setFastestInterval(1 * 1000); // 1 second, in milliseconds
-
+        
         // Create an instance of GoogleAPIClient.
         if (mGoogleApiClient == null) {
             mGoogleApiClient = new Builder(this)
@@ -94,16 +80,16 @@ public class RegisterActivity extends AppCompatActivity implements OnConnectionF
 
     @Override
     protected void onPause() {
-        super.onPause();
-        if (mGoogleApiClient.isConnected()) {
-            LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
-            mGoogleApiClient.disconnect();
-        }
+      super.onPause();
+      if (mGoogleApiClient.isConnected()) {
+          LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
+          mGoogleApiClient.disconnect();
+      }
     }
 
     @Override
     protected void onStop() {
-        if (mGoogleApiClient.isConnected()) {
+        if(mGoogleApiClient.isConnected()){
             mGoogleApiClient.disconnect();
         }
         super.onStop();
@@ -119,7 +105,7 @@ public class RegisterActivity extends AppCompatActivity implements OnConnectionF
                 e.printStackTrace();
             }
         } else {
-            Log.i(LOG_TAG, "Location services connection failed with code " + connectionResult.getErrorCode());
+            Log.i(TAG, "Location services connection failed with code " + connectionResult.getErrorCode());
         }
     }
 
@@ -127,11 +113,12 @@ public class RegisterActivity extends AppCompatActivity implements OnConnectionF
     public void onConnected(@Nullable Bundle bundle) {
         Log.i(LOG_TAG, "Location services connected.");
         Location location = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-        if (location == null) {
-            LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
+        if(location == null) {
+          LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
         } else {
-            handleNewLocation(location);
+          handleNewLocation(location);
         }
+        
     }
 
     @Override
@@ -145,11 +132,11 @@ public class RegisterActivity extends AppCompatActivity implements OnConnectionF
     }
 
     private void handleNewLocation(Location location) {
-        Log.d(LOG_TAG, location.toString());
-        double currentLatitude = location.getLatitude();
-        double currentLongitude = location.getLongitude();
-        updateUI(currentLatitude, currentLongitude);
-        saveDataToCSV(currentLatitude, currentLongitude);
+      Log.d(LOG_TAG, location.toString());
+      double currentLatitude = location.getLatitude();
+      double currentLongitude = location.getLongitude();
+      updateUI(currentLatitude, currentLongitude);
+      saveDataToCSV(currentLatitude, currentLongitude);
     }
 
     private void updateUI(double latitude, double longitude) {
@@ -158,21 +145,21 @@ public class RegisterActivity extends AppCompatActivity implements OnConnectionF
     }
 
     private void saveDataToCSV(double latitude, double longitude) {
-        String deviceName = Build.MANUFACTURER + " " + Build.MODEL;
-        String currentDate = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss").format(Calendar.getInstance().getTime());
-
-        try (BufferedWriter bwriter = new BufferedWriter(new FileWriter(mFile, true))) {
-            bwriter.write(String.format("%s, %s, %f, %f", currentDate, deviceName, longitude, latitude));
-            bwriter.newLine();
-            bwriter.close();
-
-        } catch (IOException e) {
-            Log.e(LOG_TAG, e.toString());
-        }
+      String deviceName = Build.MANUFACTURER + " " + Build.MODEL;
+      String currentDate = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss").format(Calendar.getInstance().getTime());
+      
+      try (BufferedWriter bwriter = new BufferedWriter(new FileWriter(mFile, true))) {
+          bwriter.write(String.format("%s, %s, %f, %f", currentDate, deviceName, longitude, latitude));
+          bwriter.newLine();
+          bwriter.close();
+          
+      } catch (IOException e) {
+          Log.e(LOG_TAG, e.toString());
+      }
     }
 
     @Override
     public void onClick(View v) {
-        LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
+      LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
     }
 }
