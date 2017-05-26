@@ -4,4 +4,5 @@
     <string name="pothole_analyzer">Pothole Analyzer</string>
     <string name="register_new_pothole">Register new Pothole</string>
     <string name="longitude">Longitude:</string>
+    <string name="pothole_registered_success">Pothole registered successfully!</string>
 </resources>

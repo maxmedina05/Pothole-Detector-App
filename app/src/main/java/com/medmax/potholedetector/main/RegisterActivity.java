@@ -1,21 +1,32 @@
 package com.medmax.potholedetector.main;
 
+import android.content.IntentSender;
 import android.location.Location;
+import android.os.Build;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
+import android.os.Environment;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
-import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.LocationListener;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationServices;
 import com.medmax.potholedetector.R;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 
 import static com.google.android.gms.common.api.GoogleApiClient.Builder;
 import static com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
@@ -26,14 +37,13 @@ ConnectionCallbacks, View.OnClickListener, LocationListener {
     // Constants
     private static final String LOG_TAG = "RegisterActivity";
     private final static int CONNECTION_FAILURE_RESOLUTION_REQUEST = 9000;
-    
+    // GPS Interfaces
+    GoogleApiClient mGoogleApiClient;
     // Variables
     private LocationRequest mLocationRequest;
     private File mFile;
-    
-    // GPS Interfaces
-    GoogleApiClient mGoogleApiClient;
-
+    private double mLastKnownLatitude;
+    private double mLastKnownLongitude;
     // UI Components
     private TextView mTvLongitude;
     private TextView mTvLatitude;
@@ -59,7 +69,7 @@ ConnectionCallbacks, View.OnClickListener, LocationListener {
         // Create the LocationRequest object
         mLocationRequest = LocationRequest.create()
                 .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
-                .setInterval(10 * 1000)        // 10 seconds, in milliseconds
+                .setInterval(5 * 1000)        // 10 seconds, in milliseconds
                 .setFastestInterval(1 * 1000); // 1 second, in milliseconds
         
         // Create an instance of GoogleAPIClient.
@@ -105,7 +115,7 @@ ConnectionCallbacks, View.OnClickListener, LocationListener {
                 e.printStackTrace();
             }
         } else {
-            Log.i(TAG, "Location services connection failed with code " + connectionResult.getErrorCode());
+            Log.i(LOG_TAG, "Location services connection failed with code " + connectionResult.getErrorCode());
         }
     }
 
@@ -133,10 +143,11 @@ ConnectionCallbacks, View.OnClickListener, LocationListener {
 
     private void handleNewLocation(Location location) {
       Log.d(LOG_TAG, location.toString());
-      double currentLatitude = location.getLatitude();
-      double currentLongitude = location.getLongitude();
-      updateUI(currentLatitude, currentLongitude);
-      saveDataToCSV(currentLatitude, currentLongitude);
+
+      mLastKnownLatitude = location.getLatitude();
+      mLastKnownLongitude = location.getLongitude();
+      updateUI(mLastKnownLatitude, mLastKnownLongitude);
+
     }
 
     private void updateUI(double latitude, double longitude) {
@@ -152,14 +163,25 @@ ConnectionCallbacks, View.OnClickListener, LocationListener {
           bwriter.write(String.format("%s, %s, %f, %f", currentDate, deviceName, longitude, latitude));
           bwriter.newLine();
           bwriter.close();
-          
+
+          Toast toast = Toast.makeText(
+                  this.getApplicationContext(),
+                  getString(R.string.pothole_registered_success),
+                  Toast.LENGTH_SHORT);
+          toast.show();
+
       } catch (IOException e) {
           Log.e(LOG_TAG, e.toString());
+          Toast toast = Toast.makeText(
+                  this.getApplicationContext(),
+                  "Ups!, something went wrong",
+                  Toast.LENGTH_SHORT);
+          toast.show();
       }
     }
 
     @Override
     public void onClick(View v) {
-      LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
+      saveDataToCSV(mLastKnownLatitude, mLastKnownLongitude);
     }
 }
