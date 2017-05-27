@@ -30,7 +30,6 @@ public class ThreadPoolManager {
     private final ExecutorService mExecutorService;
     private final BlockingQueue<Runnable> mTaskQueue;
     private List<Future> mRunningTaskList;
-    private WeakReference<UiThreadCallback> uiThreadCallbackWeakReference;
 
     // The class is used as a singleton
     // Initialize the class

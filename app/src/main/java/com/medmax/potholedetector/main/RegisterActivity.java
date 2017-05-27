@@ -20,6 +20,7 @@ import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.medmax.potholedetector.R;
+import com.medmax.potholedetector.utilities.AppSettings;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -57,7 +58,7 @@ ConnectionCallbacks, View.OnClickListener, LocationListener {
         // makefile
         mFile = new File(
         this.getExternalFilesDir(Environment.MEDIA_MOUNTED),
-        "potholes.csv");
+                AppSettings.POTHOLE_REGISTER_CSV_FILE);
 
         // connect ui
         mBtnRegister = (Button) findViewById(R.id.btn_register);

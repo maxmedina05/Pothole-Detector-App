@@ -22,6 +22,7 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
 
     // Variables
     private boolean mIsSaving = false;
+    private float mOutput[] = { 0, 0, 0 };
 
     // UI Components
     private ToggleButton mButton;
@@ -54,19 +55,51 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
         mSensorManager.unregisterListener(this);
     }
 
+    protected void onResume() {
+        super.onResume();
+        mSensorManager.registerListener(this, mSensor, SAMPLING_RATE);
+    }
+
     @Override
     public void onClick(View v) {
         mIsSaving = !mIsSaving;
     }
 
-    // 200 hz
+    /**
+     * This method reads the data from the accelerometer, processes it and then it saves it to a database.
+     * @param event
+     */
     @Override
     public void onSensorChanged(SensorEvent event) {
+        // Capture Data
+        float x = event.values[0];
+        float y = event.values[1];
+        float z = event.values[2];
 
+        // Process Data
+        applyLowPassFilter(event);
+
+        // Store the data in SQL using a background process.
+
+        // Displays it in the UI
+        updateUI(mOutput[0], mOutput[1], mOutput[2]);
+    }
+
+    private void applyLowPassFilter(SensorEvent event) {
+        final float alpha = 0.82f;
+        mOutput[0] = alpha * mOutput[0] + (1 - alpha) * event.values[0];
+        mOutput[1] = alpha * mOutput[1] + (1 - alpha) * event.values[1];
+        mOutput[2] = alpha * mOutput[2] + (1 - alpha) * event.values[2];
     }
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
+    }
+
+    private void updateUI(float x, float y, float z){
+        mTvAccAxisX.setText(String.valueOf(x));
+        mTvAccAxisY.setText(String.valueOf(y));
+        mTvAccAxisZ.setText(String.valueOf(z));
     }
 }
