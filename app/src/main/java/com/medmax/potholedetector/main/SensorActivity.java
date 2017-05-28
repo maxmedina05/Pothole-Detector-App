@@ -73,7 +73,7 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
     private Sensor mSensor;
 
     // Multithreading
-    private ThreadPoolManager mthreadPool;
+    private ThreadPoolManager mThreadPool;
 
     //GPS & Google API
     GoogleApiClient mGoogleApiClient;
@@ -110,7 +110,7 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
                 this.getExternalFilesDir(Environment.MEDIA_MOUNTED),
                 fileName);
 
-        mthreadPool = ThreadPoolManager.getsInstance();
+        mThreadPool = ThreadPoolManager.getsInstance();
 
         // Create the LocationRequest object
         mLocationRequest = LocationRequest.create()
@@ -155,7 +155,7 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
     @Override
     protected void onDestroy() {
         mDbHelper.close();
-        mthreadPool.cancelAllTasks();
+        mThreadPool.cancelAllTasks();
         super.onDestroy();
     }
 
@@ -192,7 +192,7 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
         final double latitude = mLastKnownLatitude;
 
         if(mIsSaving) {
-            mthreadPool.addCallable(new Callable() {
+            mThreadPool.addCallable(new Callable() {
                 @Override
                 public Object call() throws Exception {
 
@@ -239,7 +239,7 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
         }
     }
 
-    private void saveDataToCSV(long timespan, String deviceName, float x, float y, float z, double longitude, double latitude) {
+    private synchronized void saveDataToCSV(long timespan, String deviceName, float x, float y, float z, double longitude, double latitude) {
         try (BufferedWriter bwriter = new BufferedWriter(new FileWriter(mFile, true))) {
             bwriter.write(String.format("%d, %s, %f, %f, %f, %f, %f", timespan, deviceName, x, y, z, longitude, latitude));
             bwriter.newLine();
@@ -303,6 +303,4 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
         mTvLatitude.setText(String.valueOf(mLastKnownLatitude));
         mTvLongitude.setText(String.valueOf(mLastKnownLongitude));
     }
-
-
 }
