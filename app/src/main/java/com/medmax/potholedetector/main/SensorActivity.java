@@ -29,6 +29,7 @@ import com.medmax.potholedetector.data.AccelerometerDataContract.AccelerometerRe
 import com.medmax.potholedetector.multithreading.ThreadPoolManager;
 import com.medmax.potholedetector.utilities.AppSettings;
 import com.medmax.potholedetector.utilities.PotholeDbHelper;
+import com.medmax.potholedetector.utilities.TimeHelper;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -56,7 +57,7 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
     private double mLastKnownLatitude;
     private double mLastKnownLongitude;
     float mCurrentTime = System.nanoTime();
-    float mStartTime = System.nanoTime();
+    float mLaunchTime = System.nanoTime();
     int count = 0;
 
     // UI Components
@@ -67,6 +68,8 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
     private TextView mTvLongitude;
     private TextView mTvLatitude;
     private TextView mTvSamplingRate;
+    private TextView mTvStartTime;
+    private TextView mTvEndTime;
 
     // Sensor's variables
     private SensorManager mSensorManager;
@@ -94,6 +97,8 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
         mTvLongitude = (TextView) findViewById(R.id.tv_longitude);
         mTvLatitude = (TextView) findViewById(R.id.tv_latitude);
         mTvSamplingRate = (TextView) findViewById(R.id.tv_sampling_rate);
+        mTvStartTime = (TextView) findViewById(R.id.tv_start_time);
+        mTvEndTime = (TextView) findViewById(R.id.tv_end_time);
 
         mButton.setOnClickListener(this);
 
@@ -102,9 +107,7 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
         mSensorManager.registerListener(this, mSensor, SAMPLING_RATE);
 
         mDbHelper = PotholeDbHelper.getInstance(this.getApplicationContext());
-        Calendar c = Calendar.getInstance();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
-        String fileName = AppSettings.ACCELEROMETER_RAW_DATA_CSV_FILE + sdf.format(c.getTime()) + ".csv";
+        String fileName = AppSettings.ACCELEROMETER_RAW_DATA_CSV_FILE + TimeHelper.getCurrentDateTime("yyyyMMdd") + ".csv";
 
         mFile = new File(
                 this.getExternalFilesDir(Environment.MEDIA_MOUNTED),
@@ -162,6 +165,13 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
     @Override
     public void onClick(View v) {
         mIsSaving = !mIsSaving;
+
+        if(mIsSaving){
+            mTvStartTime.setText(TimeHelper.getCurrentDateTime("yyyy-MM-dd hh:mm:ss"));
+        } else {
+            mTvEndTime.setText(TimeHelper.getCurrentDateTime("yyyy-MM-dd hh:mm:ss"));
+        }
+
     }
 
     /**
@@ -180,7 +190,7 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
 
         // The event timestamps are irregular so we average to determine the
         // update frequency instead of measuring deltas.
-        double frequency = count++ / ((mCurrentTime - mStartTime) / 1000000000.0f);
+        double frequency = count++ / ((mCurrentTime - mLaunchTime) / 1000000000.0f);
 
         // Process Data
         applyLowPassFilter(event);
