@@ -8,4 +8,9 @@ public class AccelerometerData {
     public float x;
     public float y;
     public float z;
+    public long timestamp;
+    public String deviceName;
+    public double longitude;
+    public double latitude;
 }
+

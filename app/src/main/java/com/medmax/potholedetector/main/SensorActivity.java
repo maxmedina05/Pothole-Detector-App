@@ -1,6 +1,6 @@
 package com.medmax.potholedetector.main;
 
-import android.content.ContentValues;
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.IntentSender;
 import android.hardware.Sensor;
@@ -12,6 +12,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.Nullable;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -25,19 +26,14 @@ import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.medmax.potholedetector.R;
-import com.medmax.potholedetector.data.AccelerometerDataContract.AccelerometerReading;
-import com.medmax.potholedetector.multithreading.ThreadPoolManager;
+import com.medmax.potholedetector.multithreading.AccelerometerData;
+import com.medmax.potholedetector.multithreading.AccelerometerWorker;
 import com.medmax.potholedetector.utilities.AppSettings;
 import com.medmax.potholedetector.utilities.PotholeDbHelper;
 import com.medmax.potholedetector.utilities.TimeHelper;
-
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.concurrent.Callable;
+import static android.content.pm.PackageManager.PERMISSION_GRANTED;
+
 
 public class SensorActivity extends AppCompatActivity implements OnClickListener, SensorEventListener,
         GoogleApiClient.OnConnectionFailedListener,
@@ -47,6 +43,7 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
     public static final String LOG_TAG = SensorActivity.class.getSimpleName();
     private int SAMPLING_RATE = SensorManager.SENSOR_DELAY_FASTEST;
     private final static int CONNECTION_FAILURE_RESOLUTION_REQUEST = 9000;
+    public static final int PERMISSION_REQUEST_CODE = 100;
 
     // Variables
     private boolean mIsSaving = false;
@@ -76,10 +73,10 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
     private Sensor mSensor;
 
     // Multithreading
-    private ThreadPoolManager mThreadPool;
+    private AccelerometerWorker accelerometerWorker;
 
     //GPS & Google API
-    GoogleApiClient mGoogleApiClient;
+    private GoogleApiClient mGoogleApiClient;
     private LocationRequest mLocationRequest;
 
     @Override
@@ -113,8 +110,6 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
                 this.getExternalFilesDir(Environment.MEDIA_MOUNTED),
                 fileName);
 
-        mThreadPool = ThreadPoolManager.getsInstance();
-
         // Create the LocationRequest object
         mLocationRequest = LocationRequest.create()
                 .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
@@ -129,6 +124,8 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
                     .addApi(LocationServices.API)
                     .build();
         }
+
+        accelerometerWorker = new AccelerometerWorker(mDbHelper, mFile);
     }
 
     @Override
@@ -157,8 +154,8 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
 
     @Override
     protected void onDestroy() {
+        accelerometerWorker.close();
         mDbHelper.close();
-        mThreadPool.cancelAllTasks();
         super.onDestroy();
     }
 
@@ -171,7 +168,6 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
         } else {
             mTvEndTime.setText(TimeHelper.getCurrentDateTime("yyyy-MM-dd hh:mm:ss"));
         }
-
     }
 
     /**
@@ -183,9 +179,6 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
         long startTime = System.nanoTime();
 
         // Capture Data
-        float x = event.values[0];
-        float y = event.values[1];
-        float z = event.values[2];
         mCurrentTime = System.nanoTime();
 
         // The event timestamps are irregular so we average to determine the
@@ -202,16 +195,16 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
         final double latitude = mLastKnownLatitude;
 
         if(mIsSaving) {
-            mThreadPool.addCallable(new Callable() {
-                @Override
-                public Object call() throws Exception {
+            AccelerometerData data = new AccelerometerData();
+            data.timestamp = timeStamp;
+            data.deviceName = mDeviceName;
+            data.x = mOutput[0];
+            data.y = mOutput[1];
+            data.z = mOutput[2];
+            data.longitude = longitude;
+            data.latitude = latitude;
 
-                    saveDataToCSV(timeStamp, mDeviceName, output[0], output[1], output[2], longitude, latitude);
-                    saveDatatoDB(timeStamp, mDeviceName, output[0], output[1], output[2], longitude, latitude);
-                    Log.i(LOG_TAG, "onSensorChanged - background task done!");
-                    return null;
-                }
-            });
+            accelerometerWorker.addNewData(data);
         }
 
         long endTime = System.nanoTime();
@@ -233,34 +226,6 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
 
     }
 
-    private void saveDatatoDB(long timestamp, String deviceName, float x, float y, float z, double longitude, double latitude) {
-        if(mDbHelper != null) {
-            ContentValues values = new ContentValues();
-            values.put(AccelerometerReading.COLUMN_NAME_TIME, timestamp);
-            values.put(AccelerometerReading.COLUMN_NAME_DEVICE_NAME, deviceName);
-            values.put(AccelerometerReading.COLUMN_NAME_ACC_X_AXIS, x);
-            values.put(AccelerometerReading.COLUMN_NAME_ACC_Y_AXIS, y);
-            values.put(AccelerometerReading.COLUMN_NAME_ACC_Z_AXIS, z);
-
-            values.put(AccelerometerReading.COLUMN_NAME_LONGITUDE, longitude);
-            values.put(AccelerometerReading.COLUMN_NAME_LATITUDE, latitude);
-
-            long newId = mDbHelper.getWritableDatabase().insert(AccelerometerReading.TABLE_NAME, null, values);
-        }
-    }
-
-    private synchronized void saveDataToCSV(long timespan, String deviceName, float x, float y, float z, double longitude, double latitude) {
-        try (BufferedWriter bwriter = new BufferedWriter(new FileWriter(mFile, true))) {
-            bwriter.write(String.format("%d, %s, %f, %f, %f, %f, %f", timespan, deviceName, x, y, z, longitude, latitude));
-            bwriter.newLine();
-            bwriter.close();
-
-
-        } catch (IOException e) {
-            Log.e(LOG_TAG, e.toString());
-        }
-    }
-
     private void updateUI(float x, float y, float z, double frequency){
         mTvAccAxisX.setText(String.valueOf(x));
         mTvAccAxisY.setText(String.valueOf(y));
@@ -269,15 +234,19 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
     }
 
     @Override
+    @TargetApi(Build.VERSION_CODES.M)
     public void onConnected(@Nullable Bundle bundle) {
         Log.i(LOG_TAG, "Location services connected.");
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PERMISSION_GRANTED) {
+            this.requestPermissions(new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSION_REQUEST_CODE);
+            return;
+        }
         Location location = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-        if(location == null) {
+        if (location == null) {
             LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
         } else {
             handleNewLocation(location);
         }
-
     }
 
     @Override
