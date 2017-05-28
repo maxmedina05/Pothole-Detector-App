@@ -13,7 +13,7 @@ public final class AccelerometerDataContract {
 
     public static class AccelerometerReading implements BaseColumns {
         public static String TABLE_NAME = "accdata";
-        public static String COLUMN_NAME_TIMESPAN = "timespan";
+        public static String COLUMN_NAME_TIME = "timestamp";
         public static String COLUMN_NAME_DEVICE_NAME = "device_name";
         public static String COLUMN_NAME_ACC_X_AXIS = "x_axis";
         public static String COLUMN_NAME_ACC_Y_AXIS = "y_axis";

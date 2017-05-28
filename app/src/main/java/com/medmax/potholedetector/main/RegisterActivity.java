@@ -148,7 +148,6 @@ ConnectionCallbacks, View.OnClickListener, LocationListener {
       mLastKnownLatitude = location.getLatitude();
       mLastKnownLongitude = location.getLongitude();
       updateUI(mLastKnownLatitude, mLastKnownLongitude);
-
     }
 
     private void updateUI(double latitude, double longitude) {
