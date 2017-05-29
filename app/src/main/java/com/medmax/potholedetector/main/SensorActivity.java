@@ -1,17 +1,19 @@
 package com.medmax.potholedetector.main;
 
-import android.annotation.TargetApi;
+import android.Manifest;
+import android.content.ContentValues;
 import android.content.Context;
-import android.content.IntentSender;
+import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -20,34 +22,29 @@ import android.view.View.OnClickListener;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.location.LocationListener;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationServices;
 import com.medmax.potholedetector.R;
-import com.medmax.potholedetector.multithreading.AccelerometerData;
-import com.medmax.potholedetector.multithreading.AccelerometerWorker;
+import com.medmax.potholedetector.data.AccelerometerDataContract.AccelerometerReading;
+import com.medmax.potholedetector.multithreading.ThreadPoolManager;
 import com.medmax.potholedetector.utilities.AppSettings;
 import com.medmax.potholedetector.utilities.PotholeDbHelper;
 import com.medmax.potholedetector.utilities.TimeHelper;
+
+import java.io.BufferedWriter;
 import java.io.File;
-import static android.content.pm.PackageManager.PERMISSION_GRANTED;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.concurrent.Callable;
 
-
-public class SensorActivity extends AppCompatActivity implements OnClickListener, SensorEventListener,
-        GoogleApiClient.OnConnectionFailedListener,
-        GoogleApiClient.ConnectionCallbacks, LocationListener {
+public class SensorActivity extends AppCompatActivity implements OnClickListener, SensorEventListener, LocationListener {
 
     // constants
     public static final String LOG_TAG = SensorActivity.class.getSimpleName();
     private int SAMPLING_RATE = SensorManager.SENSOR_DELAY_FASTEST;
-    private final static int CONNECTION_FAILURE_RESOLUTION_REQUEST = 9000;
-    public static final int PERMISSION_REQUEST_CODE = 100;
 
     // Variables
     private boolean mIsSaving = false;
-    private float mOutput[] = { 0, 0, 0 };
+    private boolean mIsFilterEn = true;
+    private float mOutput[] = {0, 0, 0};
     private PotholeDbHelper mDbHelper;
     private String mDeviceName;
     private File mFile;
@@ -59,6 +56,7 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
 
     // UI Components
     private ToggleButton mButton;
+    private ToggleButton mBtnFilter;
     private TextView mTvAccAxisX;
     private TextView mTvAccAxisY;
     private TextView mTvAccAxisZ;
@@ -73,11 +71,11 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
     private Sensor mSensor;
 
     // Multithreading
-    private AccelerometerWorker accelerometerWorker;
+    private ThreadPoolManager mThreadPool;
+//    private AccelerometerWorker accelerometerWorker;
 
     //GPS & Google API
-    private GoogleApiClient mGoogleApiClient;
-    private LocationRequest mLocationRequest;
+    private LocationManager mLocationManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,6 +85,7 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
         mDeviceName = Build.MANUFACTURER + " " + Build.MODEL;
 
         mButton = (ToggleButton) findViewById(R.id.btnToggle);
+        mBtnFilter = (ToggleButton) findViewById(R.id.btn_en_filter);
         mTvAccAxisX = (TextView) findViewById(R.id.acc_axis_x);
         mTvAccAxisY = (TextView) findViewById(R.id.acc_axis_y);
         mTvAccAxisZ = (TextView) findViewById(R.id.acc_axis_z);
@@ -98,6 +97,7 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
         mTvEndTime = (TextView) findViewById(R.id.tv_end_time);
 
         mButton.setOnClickListener(this);
+        mBtnFilter.setOnClickListener(this);
 
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -111,63 +111,63 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
                 fileName);
 
         // Create the LocationRequest object
-        mLocationRequest = LocationRequest.create()
-                .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
-                .setInterval(5 * 1000)        // 10 seconds, in milliseconds
-                .setFastestInterval(1 * 1000); // 1 second, in milliseconds
+        mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
 
-        // Create an instance of GoogleAPIClient.
-        if (mGoogleApiClient == null) {
-            mGoogleApiClient = new GoogleApiClient.Builder(this)
-                    .addConnectionCallbacks(this)
-                    .addOnConnectionFailedListener(this)
-                    .addApi(LocationServices.API)
-                    .build();
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
         }
-
-        accelerometerWorker = new AccelerometerWorker(mDbHelper, mFile);
+        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
+        handleNewLocation(mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER));
+        mThreadPool = ThreadPoolManager.getsInstance();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
+        mLocationManager.removeUpdates(this);
         mSensorManager.unregisterListener(this);
-        if (mGoogleApiClient.isConnected()) {
-            LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
-            mGoogleApiClient.disconnect();
-        }
     }
 
     protected void onResume() {
         super.onResume();
         mSensorManager.registerListener(this, mSensor, SAMPLING_RATE);
-        mGoogleApiClient.connect();
-    }
-
-    @Override
-    protected void onStop() {
-        if(mGoogleApiClient.isConnected()){
-            mGoogleApiClient.disconnect();
-        }
-        super.onStop();
+        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
     }
 
     @Override
     protected void onDestroy() {
-        accelerometerWorker.close();
+        mThreadPool.cancelAllTasks();
         mDbHelper.close();
         super.onDestroy();
     }
 
     @Override
     public void onClick(View v) {
-        mIsSaving = !mIsSaving;
+        switch (v.getId()){
+            case R.id.btnToggle:
+                mIsSaving = !mIsSaving;
 
-        if(mIsSaving){
-            mTvStartTime.setText(TimeHelper.getCurrentDateTime("yyyy-MM-dd hh:mm:ss"));
-        } else {
-            mTvEndTime.setText(TimeHelper.getCurrentDateTime("yyyy-MM-dd hh:mm:ss"));
+                if(mIsSaving){
+                    mTvStartTime.setText(TimeHelper.getCurrentDateTime("yyyy-MM-dd hh:mm:ss"));
+                } else {
+                    mTvEndTime.setText(TimeHelper.getCurrentDateTime("yyyy-MM-dd hh:mm:ss"));
+                }
+                break;
+            case R.id.btn_en_filter:
+                mIsFilterEn = !mIsFilterEn;
+                break;
+
+            default:
+                break;
         }
+
     }
 
     /**
@@ -177,7 +177,6 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
     @Override
     public void onSensorChanged(SensorEvent event) {
         long startTime = System.nanoTime();
-
         // Capture Data
         mCurrentTime = System.nanoTime();
 
@@ -186,29 +185,31 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
         double frequency = count++ / ((mCurrentTime - mLaunchTime) / 1000000000.0f);
 
         // Process Data
-        applyLowPassFilter(event);
+        if(mIsFilterEn) {
+            applyLowPassFilter(event);
+//            Log.d(LOG_TAG, "Low Pass Filter applied!");
+        }
 
         // Store the data in SQL using a background process.
-        final float[] output = mOutput.clone();
+        final float[] output = (mIsFilterEn) ? mOutput.clone() : event.values.clone();
         final long timeStamp = event.timestamp;
         final double longitude = mLastKnownLongitude;
         final double latitude = mLastKnownLatitude;
 
         if(mIsSaving) {
-            AccelerometerData data = new AccelerometerData();
-            data.timestamp = timeStamp;
-            data.deviceName = mDeviceName;
-            data.x = mOutput[0];
-            data.y = mOutput[1];
-            data.z = mOutput[2];
-            data.longitude = longitude;
-            data.latitude = latitude;
-
-            accelerometerWorker.addNewData(data);
+            mThreadPool.addCallable(new Callable() {
+                @Override
+                public Object call() throws Exception {
+                    saveDataToCSV(timeStamp, mDeviceName, output[0], output[1], output[2], longitude, latitude);
+                    saveDatatoDB(timeStamp, mDeviceName, output[0], output[1], output[2], longitude, latitude);
+//                    Log.i(LOG_TAG, "onSensorChanged - background task done!");
+                    return null;
+                }
+            });
         }
 
         long endTime = System.nanoTime();
-        Log.i(LOG_TAG, String.format("Total execution mCurrentTime: %d ns", (endTime-startTime)));
+//        Log.i(LOG_TAG, String.format("Total execution time: %d ns", (endTime-startTime)));
 
         // Displays it in the UI
         updateUI(mOutput[0], mOutput[1], mOutput[2], frequency);
@@ -221,8 +222,56 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
         mOutput[2] = alpha * mOutput[2] + (1 - alpha) * event.values[2];
     }
 
+    private synchronized void saveDatatoDB(long timestamp, String deviceName, float x, float y, float z, double longitude, double latitude) {
+        if(mDbHelper != null) {
+            ContentValues values = new ContentValues();
+            values.put(AccelerometerReading.COLUMN_NAME_TIME, timestamp);
+            values.put(AccelerometerReading.COLUMN_NAME_DEVICE_NAME, deviceName);
+            values.put(AccelerometerReading.COLUMN_NAME_ACC_X_AXIS, x);
+            values.put(AccelerometerReading.COLUMN_NAME_ACC_Y_AXIS, y);
+            values.put(AccelerometerReading.COLUMN_NAME_ACC_Z_AXIS, z);
+
+            values.put(AccelerometerReading.COLUMN_NAME_LONGITUDE, longitude);
+            values.put(AccelerometerReading.COLUMN_NAME_LATITUDE, latitude);
+
+            long newId = mDbHelper.getWritableDatabase().insert(AccelerometerReading.TABLE_NAME, null, values);
+        }
+    }
+
+    private synchronized void saveDataToCSV(long timespan, String deviceName, float x, float y, float z, double longitude, double latitude) {
+        try (BufferedWriter bwriter = new BufferedWriter(new FileWriter(mFile, true))) {
+            bwriter.write(String.format("%d, %s, %f, %f, %f, %f, %f", timespan, deviceName, x, y, z, longitude, latitude));
+            bwriter.newLine();
+            bwriter.close();
+
+
+        } catch (IOException e) {
+            Log.e(LOG_TAG, e.toString());
+        }
+    }
+
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        handleNewLocation(location);
+    }
+
+    @Override
+    public void onStatusChanged(String provider, int status, Bundle extras) {
+
+    }
+
+    @Override
+    public void onProviderEnabled(String provider) {
+
+    }
+
+    @Override
+    public void onProviderDisabled(String provider) {
 
     }
 
@@ -233,53 +282,15 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
         mTvSamplingRate.setText(String.valueOf(frequency));
     }
 
-    @Override
-    @TargetApi(Build.VERSION_CODES.M)
-    public void onConnected(@Nullable Bundle bundle) {
-        Log.i(LOG_TAG, "Location services connected.");
-        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PERMISSION_GRANTED) {
-            this.requestPermissions(new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSION_REQUEST_CODE);
-            return;
-        }
-        Location location = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-        if (location == null) {
-            LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
-        } else {
-            handleNewLocation(location);
-        }
-    }
-
-    @Override
-    public void onConnectionSuspended(int i) {
-
-    }
-
-    @Override
-    public void onConnectionFailed(ConnectionResult connectionResult) {
-        if (connectionResult.hasResolution()) {
-            try {
-                // Start an Activity that tries to resolve the error
-                connectionResult.startResolutionForResult(this, CONNECTION_FAILURE_RESOLUTION_REQUEST);
-            } catch (IntentSender.SendIntentException e) {
-                e.printStackTrace();
-            }
-        } else {
-            Log.i(LOG_TAG, "Location services connection failed with code " + connectionResult.getErrorCode());
-        }
-    }
-
-    @Override
-    public void onLocationChanged(Location location) {
-        handleNewLocation(location);
-    }
-
     private void handleNewLocation(Location location) {
-        Log.d(LOG_TAG, location.toString());
+        if(location != null) {
+//            Log.d(LOG_TAG, location.toString());
 
-        mLastKnownLatitude = location.getLatitude();
-        mLastKnownLongitude = location.getLongitude();
+            mLastKnownLatitude = location.getLatitude();
+            mLastKnownLongitude = location.getLongitude();
 
-        mTvLatitude.setText(String.valueOf(mLastKnownLatitude));
-        mTvLongitude.setText(String.valueOf(mLastKnownLongitude));
+            mTvLatitude.setText(String.valueOf(mLastKnownLatitude));
+            mTvLongitude.setText(String.valueOf(mLastKnownLongitude));
+        }
     }
 }

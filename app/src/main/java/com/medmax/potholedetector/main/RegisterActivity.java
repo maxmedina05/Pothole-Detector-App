@@ -1,11 +1,11 @@
 package com.medmax.potholedetector.main;
 
-import android.content.IntentSender;
+import android.content.Context;
 import android.location.Location;
+import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -13,12 +13,6 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
-import com.google.android.gms.location.LocationListener;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationServices;
 import com.medmax.potholedetector.R;
 import com.medmax.potholedetector.utilities.AppSettings;
 
@@ -29,22 +23,21 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
-import static com.google.android.gms.common.api.GoogleApiClient.Builder;
-import static com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
+import static android.view.View.OnClickListener;
 
-public class RegisterActivity extends AppCompatActivity implements OnConnectionFailedListener, 
-ConnectionCallbacks, View.OnClickListener, LocationListener {
+public class RegisterActivity extends AppCompatActivity implements OnClickListener, android.location.LocationListener {
 
     // Constants
     private static final String LOG_TAG = "RegisterActivity";
-    private final static int CONNECTION_FAILURE_RESOLUTION_REQUEST = 9000;
-    // GPS Interfaces
-    GoogleApiClient mGoogleApiClient;
+
     // Variables
-    private LocationRequest mLocationRequest;
     private File mFile;
+
+    // GPS Interfaces
+    private LocationManager mLocationManager;
     private double mLastKnownLatitude;
     private double mLastKnownLongitude;
+
     // UI Components
     private TextView mTvLongitude;
     private TextView mTvLatitude;
@@ -57,7 +50,7 @@ ConnectionCallbacks, View.OnClickListener, LocationListener {
 
         // makefile
         mFile = new File(
-        this.getExternalFilesDir(Environment.MEDIA_MOUNTED),
+                this.getExternalFilesDir(Environment.MEDIA_MOUNTED),
                 AppSettings.POTHOLE_REGISTER_CSV_FILE);
 
         // connect ui
@@ -67,74 +60,27 @@ ConnectionCallbacks, View.OnClickListener, LocationListener {
 
         mBtnRegister.setOnClickListener(this);
 
-        // Create the LocationRequest object
-        mLocationRequest = LocationRequest.create()
-                .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
-                .setInterval(5 * 1000)        // 10 seconds, in milliseconds
-                .setFastestInterval(1 * 1000); // 1 second, in milliseconds
-        
-        // Create an instance of GoogleAPIClient.
-        if (mGoogleApiClient == null) {
-            mGoogleApiClient = new Builder(this)
-                    .addConnectionCallbacks(this)
-                    .addOnConnectionFailedListener(this)
-                    .addApi(LocationServices.API)
-                    .build();
-        }
+        mLocationManager = (LocationManager) getApplicationContext().getSystemService(Context.LOCATION_SERVICE);
+        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        mGoogleApiClient.connect();
+        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
+
     }
 
     @Override
     protected void onPause() {
       super.onPause();
-      if (mGoogleApiClient.isConnected()) {
-          LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
-          mGoogleApiClient.disconnect();
-      }
+        mLocationManager.removeUpdates(this);
+
     }
 
     @Override
-    protected void onStop() {
-        if(mGoogleApiClient.isConnected()){
-            mGoogleApiClient.disconnect();
-        }
-        super.onStop();
-    }
-
-    @Override
-    public void onConnectionFailed(ConnectionResult connectionResult) {
-        if (connectionResult.hasResolution()) {
-            try {
-                // Start an Activity that tries to resolve the error
-                connectionResult.startResolutionForResult(this, CONNECTION_FAILURE_RESOLUTION_REQUEST);
-            } catch (IntentSender.SendIntentException e) {
-                e.printStackTrace();
-            }
-        } else {
-            Log.i(LOG_TAG, "Location services connection failed with code " + connectionResult.getErrorCode());
-        }
-    }
-
-    @Override
-    public void onConnected(@Nullable Bundle bundle) {
-        Log.i(LOG_TAG, "Location services connected.");
-        Location location = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-        if(location == null) {
-          LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
-        } else {
-          handleNewLocation(location);
-        }
-        
-    }
-
-    @Override
-    public void onConnectionSuspended(int i) {
-
+    public void onClick(View v) {
+      saveDataToCSV(mLastKnownLatitude, mLastKnownLongitude);
     }
 
     @Override
@@ -142,12 +88,29 @@ ConnectionCallbacks, View.OnClickListener, LocationListener {
         handleNewLocation(location);
     }
 
-    private void handleNewLocation(Location location) {
-      Log.d(LOG_TAG, location.toString());
+    @Override
+    public void onStatusChanged(String provider, int status, Bundle extras) {
 
-      mLastKnownLatitude = location.getLatitude();
-      mLastKnownLongitude = location.getLongitude();
-      updateUI(mLastKnownLatitude, mLastKnownLongitude);
+    }
+
+    @Override
+    public void onProviderEnabled(String provider) {
+
+    }
+
+    @Override
+    public void onProviderDisabled(String provider) {
+
+    }
+
+    private void handleNewLocation(Location location) {
+        if(location != null) {
+            Log.d(LOG_TAG, location.toString());
+
+            mLastKnownLatitude = location.getLatitude();
+            mLastKnownLongitude = location.getLongitude();
+            updateUI(mLastKnownLatitude, mLastKnownLongitude);
+        }
     }
 
     private void updateUI(double latitude, double longitude) {
@@ -155,33 +118,31 @@ ConnectionCallbacks, View.OnClickListener, LocationListener {
         mTvLatitude.setText(String.valueOf(latitude));
     }
 
+
+
     private void saveDataToCSV(double latitude, double longitude) {
-      String deviceName = Build.MANUFACTURER + " " + Build.MODEL;
-      String currentDate = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss").format(Calendar.getInstance().getTime());
-      
-      try (BufferedWriter bwriter = new BufferedWriter(new FileWriter(mFile, true))) {
-          bwriter.write(String.format("%s, %s, %f, %f", currentDate, deviceName, longitude, latitude));
-          bwriter.newLine();
-          bwriter.close();
+        String deviceName = Build.MANUFACTURER + " " + Build.MODEL;
+        String currentDate = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss").format(Calendar.getInstance().getTime());
 
-          Toast toast = Toast.makeText(
-                  this.getApplicationContext(),
-                  getString(R.string.pothole_registered_success),
-                  Toast.LENGTH_SHORT);
-          toast.show();
+        try (BufferedWriter bwriter = new BufferedWriter(new FileWriter(mFile, true))) {
+            bwriter.write(String.format("%s, %s, %f, %f", currentDate, deviceName, longitude, latitude));
+            bwriter.newLine();
+            bwriter.close();
 
-      } catch (IOException e) {
-          Log.e(LOG_TAG, e.toString());
-          Toast toast = Toast.makeText(
-                  this.getApplicationContext(),
-                  "Ups!, something went wrong",
-                  Toast.LENGTH_SHORT);
-          toast.show();
-      }
+            Toast toast = Toast.makeText(
+                    this.getApplicationContext(),
+                    getString(R.string.pothole_registered_success),
+                    Toast.LENGTH_SHORT);
+            toast.show();
+
+        } catch (IOException e) {
+            Log.e(LOG_TAG, e.toString());
+            Toast toast = Toast.makeText(
+                    this.getApplicationContext(),
+                    "Ups!, something went wrong",
+                    Toast.LENGTH_SHORT);
+            toast.show();
+        }
     }
 
-    @Override
-    public void onClick(View v) {
-      saveDataToCSV(mLastKnownLatitude, mLastKnownLongitude);
-    }
 }
