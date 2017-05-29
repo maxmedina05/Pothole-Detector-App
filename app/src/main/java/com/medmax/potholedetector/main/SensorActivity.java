@@ -192,7 +192,7 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
 
         // Store the data in SQL using a background process.
         final float[] output = (mIsFilterEn) ? mOutput.clone() : event.values.clone();
-        final long timeStamp = event.timestamp;
+        final long timeStamp =  System.nanoTime();
         final double longitude = mLastKnownLongitude;
         final double latitude = mLastKnownLatitude;
 
