@@ -73,8 +73,8 @@ public class AccelerometerWorker {
             values.put(AccelerometerReading.COLUMN_NAME_ACC_Y_AXIS, data.y);
             values.put(AccelerometerReading.COLUMN_NAME_ACC_Z_AXIS, data.z);
 
-            values.put(AccelerometerReading.COLUMN_NAME_LONGITUDE, data.longitude);
-            values.put(AccelerometerReading.COLUMN_NAME_LATITUDE, data.latitude);
+//            values.put(AccelerometerReading.COLUMN_NAME_LONGITUDE, data.longitude);
+//            values.put(AccelerometerReading.COLUMN_NAME_LATITUDE, data.latitude);
             long result = db.insert(AccelerometerReading.TABLE_NAME, null, values);
 //            Log.d("AccelerometerWorker", "New accelerometer data. result=" + String.valueOf(result));
 

@@ -31,7 +31,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
         Intent intent;
         switch (viewId){
             case R.id.btn_pothole_analyzer:
-                intent = new Intent(MainActivity.this, SensorActivity.class);
+                intent = new Intent(MainActivity.this, AnalyzerActivity.class);
                 break;
 
             case R.id.btn_register_pothole:
@@ -39,7 +39,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
                 break;
             default:
                 // TODO: change to settings or something else
-                intent = new Intent(MainActivity.this, SensorActivity.class);
+                intent = new Intent(MainActivity.this, AnalyzerActivity.class);
                 break;
         }
 

@@ -18,8 +18,5 @@ public final class AccelerometerDataContract {
         public static String COLUMN_NAME_ACC_X_AXIS = "x_axis";
         public static String COLUMN_NAME_ACC_Y_AXIS = "y_axis";
         public static String COLUMN_NAME_ACC_Z_AXIS = "z_axis";
-        public static String COLUMN_NAME_LONGITUDE = "longitude";
-        public static String COLUMN_NAME_LATITUDE  = "latitude";
-
     }
 }

@@ -14,6 +14,7 @@ import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.SystemClock;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -192,7 +193,7 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
 
         // Store the data in SQL using a background process.
         final float[] output = (mIsFilterEn) ? mOutput.clone() : event.values.clone();
-        final long timeStamp =  System.currentTimeMillis() + ((event.timestamp-SystemClock.elapsedRealtimeNanos())/1000000L);
+        final long timeStamp =  System.currentTimeMillis() + ((event.timestamp- SystemClock.elapsedRealtimeNanos())/1000000L);
         final double longitude = mLastKnownLongitude;
         final double latitude = mLastKnownLatitude;
 
@@ -231,8 +232,8 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
             values.put(AccelerometerReading.COLUMN_NAME_ACC_Y_AXIS, y);
             values.put(AccelerometerReading.COLUMN_NAME_ACC_Z_AXIS, z);
 
-            values.put(AccelerometerReading.COLUMN_NAME_LONGITUDE, longitude);
-            values.put(AccelerometerReading.COLUMN_NAME_LATITUDE, latitude);
+//            values.put(AccelerometerReading.COLUMN_NAME_LONGITUDE, longitude);
+//            values.put(AccelerometerReading.COLUMN_NAME_LATITUDE, latitude);
 
             long newId = mDbHelper.getWritableDatabase().insert(AccelerometerReading.TABLE_NAME, null, values);
         }
