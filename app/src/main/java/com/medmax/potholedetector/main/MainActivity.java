@@ -1,7 +1,9 @@
 package com.medmax.potholedetector.main;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -11,18 +13,28 @@ import com.medmax.potholedetector.R;
 
 public class MainActivity extends AppCompatActivity implements OnClickListener {
 
+    // UI Components
     private Button mBtnPotholeAnalyzer;
     private Button mBtnRegisterNewPothole;
+    private Button mBtnExport;
+    private Button mBtnSettings;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mBtnPotholeAnalyzer = (Button) findViewById(R.id.btn_pothole_analyzer);
-        mBtnRegisterNewPothole = (Button) findViewById(R.id.btn_register_pothole);
+        PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
+
+        mBtnPotholeAnalyzer = (Button) findViewById(R.id.btn_analyze);
+        mBtnRegisterNewPothole = (Button) findViewById(R.id.btn_register);
+        mBtnExport = (Button) findViewById(R.id.btn_export);
+        mBtnSettings = (Button) findViewById(R.id.btn_settings);
+
         mBtnPotholeAnalyzer.setOnClickListener(this);
         mBtnRegisterNewPothole.setOnClickListener(this);
+        mBtnExport.setOnClickListener(this);
+        mBtnSettings.setOnClickListener(this);
     }
 
     @Override
@@ -30,12 +42,18 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
         int viewId = v.getId();
         Intent intent;
         switch (viewId){
-            case R.id.btn_pothole_analyzer:
+            case R.id.btn_analyze:
                 intent = new Intent(MainActivity.this, AnalyzerActivity.class);
                 break;
 
-            case R.id.btn_register_pothole:
+            case R.id.btn_register:
                 intent = new Intent(MainActivity.this, RegisterActivity.class);
+                break;
+            case R.id.btn_export:
+                intent = new Intent(MainActivity.this, RegisterActivity.class);
+                break;
+            case R.id.btn_settings:
+                intent = new Intent(MainActivity.this, SettingsActivity.class);
                 break;
             default:
                 // TODO: change to settings or something else

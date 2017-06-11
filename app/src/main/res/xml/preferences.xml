@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <EditTextPreference
+
+        android:defaultValue="0.4"
+        android:key="pref_thresh"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:inputType="number"
+        android:title="THRESH value: "/>
+
+    <EditTextPreference
+        android:defaultValue="0.4"
+        android:key="pref_zdiff"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:inputType="number"
+        android:title="Z-DFF value: "/>
+
+    <EditTextPreference
+        android:defaultValue="0.4"
+        android:inputType="number"
+        android:key="pref_stdev"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:title="STDDEV value: "/>
+
+    <EditTextPreference
+        android:defaultValue="0.4"
+        android:inputType="number"
+        android:key="pref_gzero"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:title="G-Zero value: "/>
+</PreferenceScreen>

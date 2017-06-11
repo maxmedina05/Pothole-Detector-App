@@ -11,7 +11,7 @@
     <Button
         android:layout_width="200dp"
         android:layout_height="wrap_content"
-        android:id="@+id/btn_pothole_analyzer"
+        android:id="@+id/btn_analyze"
         android:text="@string/pothole_analyzer"
         android:layout_marginTop="40dp"
         android:layout_marginBottom="24dp"
@@ -21,7 +21,23 @@
     <Button
         android:layout_width="200dp"
         android:layout_height="wrap_content"
-        android:id="@+id/btn_register_pothole"
+        android:id="@+id/btn_register"
         android:layout_gravity="center_horizontal"
-        android:text="@string/register_new_pothole" />
+        android:layout_marginBottom="24dp"
+        android:text="Register" />
+
+    <Button
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:id="@+id/btn_export"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="24dp"
+        android:text="Export" />
+
+    <Button
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:id="@+id/btn_settings"
+        android:layout_gravity="center_horizontal"
+        android:text="Settings" />
 </android.support.v7.widget.LinearLayoutCompat>

@@ -5,4 +5,11 @@
     <string name="register_new_pothole">Register new Pothole</string>
     <string name="longitude">Longitude:</string>
     <string name="pothole_registered_success">Pothole registered successfully!</string>
+    <string name="title_activity_settings">Settings</string>
+
+    <!-- Strings related to Settings -->
+    <string name="pref_thresh">pref_thresh</string>
+    <string name="pref_zdiff">pref_zdiff</string>
+    <string name="pref_stdev">pref_stdev</string>
+    <string name="pref_gzero">pref_gzero</string>
 </resources>
