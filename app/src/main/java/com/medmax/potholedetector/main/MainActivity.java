@@ -18,7 +18,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
     private Button mBtnRegisterNewPothole;
     private Button mBtnExport;
     private Button mBtnSettings;
-
+    private Button mBtnPotholeDetector;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -30,11 +30,13 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
         mBtnRegisterNewPothole = (Button) findViewById(R.id.btn_register);
         mBtnExport = (Button) findViewById(R.id.btn_export);
         mBtnSettings = (Button) findViewById(R.id.btn_settings);
+        mBtnPotholeDetector = (Button) findViewById(R.id.btn_detector);
 
         mBtnPotholeAnalyzer.setOnClickListener(this);
         mBtnRegisterNewPothole.setOnClickListener(this);
         mBtnExport.setOnClickListener(this);
         mBtnSettings.setOnClickListener(this);
+        mBtnPotholeDetector.setOnClickListener(this);
     }
 
     @Override
@@ -49,11 +51,17 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
             case R.id.btn_register:
                 intent = new Intent(MainActivity.this, RegisterActivity.class);
                 break;
+
             case R.id.btn_export:
                 intent = new Intent(MainActivity.this, RegisterActivity.class);
                 break;
+
             case R.id.btn_settings:
                 intent = new Intent(MainActivity.this, SettingsActivity.class);
+                break;
+
+            case R.id.btn_detector:
+                intent = new Intent(MainActivity.this, PotholeDetectorActivity.class);
                 break;
             default:
                 // TODO: change to settings or something else

@@ -21,6 +21,14 @@
     <Button
         android:layout_width="200dp"
         android:layout_height="wrap_content"
+        android:id="@+id/btn_detector"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="24dp"
+        android:text="Pothole Detector" />
+
+    <Button
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
         android:id="@+id/btn_register"
         android:layout_gravity="center_horizontal"
         android:layout_marginBottom="24dp"

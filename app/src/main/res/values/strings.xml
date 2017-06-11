@@ -12,4 +12,12 @@
     <string name="pref_zdiff">pref_zdiff</string>
     <string name="pref_stdev">pref_stdev</string>
     <string name="pref_gzero">pref_gzero</string>
+
+    <string-array name="type_holes">
+        <item>Hoyo</item>
+        <item>Policia acostado</item>
+        <item>Baden</item>
+        <item>Junta</item>
+        <item>Otros</item>
+    </string-array>
 </resources>

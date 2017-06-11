@@ -27,9 +27,8 @@
         <activity
             android:name=".main.AnalyzerActivity"
             android:screenOrientation="portrait">
-
         </activity>
         <activity android:name=".main.SettingsActivity"></activity>
+        <activity android:name=".main.PotholeDetectorActivity"></activity>
     </application>
-
 </manifest>

@@ -1,5 +1,6 @@
 package com.medmax.potholedetector.main;
 
+import android.app.Activity;
 import android.content.Context;
 import android.location.Location;
 import android.location.LocationManager;
@@ -9,7 +10,9 @@ import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -25,7 +28,7 @@ import java.util.Calendar;
 
 import static android.view.View.OnClickListener;
 
-public class RegisterActivity extends AppCompatActivity implements OnClickListener, android.location.LocationListener {
+public class RegisterActivity extends Activity implements OnClickListener, android.location.LocationListener {
 
     // Constants
     private static final String LOG_TAG = "RegisterActivity";
@@ -42,6 +45,7 @@ public class RegisterActivity extends AppCompatActivity implements OnClickListen
     private TextView mTvLongitude;
     private TextView mTvLatitude;
     private Button mBtnRegister;
+    private Spinner mSpnTypeHole;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,8 +61,13 @@ public class RegisterActivity extends AppCompatActivity implements OnClickListen
         mBtnRegister = (Button) findViewById(R.id.btn_register);
         mTvLongitude = (TextView) findViewById(R.id.gps_longitude);
         mTvLatitude = (TextView) findViewById(R.id.gps_latitude);
-
+        mSpnTypeHole = (Spinner) findViewById(R.id.spn_type_hole);
         mBtnRegister.setOnClickListener(this);
+
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
+                R.array.type_holes, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        mSpnTypeHole.setAdapter(adapter);
 
         mLocationManager = (LocationManager) getApplicationContext().getSystemService(Context.LOCATION_SERVICE);
         mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
@@ -80,7 +89,14 @@ public class RegisterActivity extends AppCompatActivity implements OnClickListen
 
     @Override
     public void onClick(View v) {
-      saveDataToCSV(mLastKnownLatitude, mLastKnownLongitude);
+//      saveDataToCSV(mLastKnownLatitude, mLastKnownLongitude);
+
+        saveToDB();
+
+    }
+
+    private void saveToDB() {
+
     }
 
     @Override
@@ -117,8 +133,6 @@ public class RegisterActivity extends AppCompatActivity implements OnClickListen
         mTvLongitude.setText(String.valueOf(longitude));
         mTvLatitude.setText(String.valueOf(latitude));
     }
-
-
 
     private void saveDataToCSV(double latitude, double longitude) {
         String deviceName = Build.MANUFACTURER + " " + Build.MODEL;
