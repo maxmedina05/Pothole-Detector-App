@@ -28,7 +28,7 @@ import com.medmax.potholedetector.data.AccelerometerDataContract.AccelerometerRe
 import com.medmax.potholedetector.multithreading.ThreadPoolManager;
 import com.medmax.potholedetector.utilities.AppSettings;
 import com.medmax.potholedetector.utilities.PotholeDbHelper;
-import com.medmax.potholedetector.utilities.TimeHelper;
+import com.medmax.potholedetector.utilities.DateTimeHelper;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -105,7 +105,7 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
         mSensorManager.registerListener(this, mSensor, SAMPLING_RATE);
 
         mDbHelper = PotholeDbHelper.getInstance(this.getApplicationContext());
-        String fileName = AppSettings.ACCELEROMETER_RAW_DATA_CSV_FILE + TimeHelper.getCurrentDateTime("yyyyMMdd") + ".csv";
+        String fileName = AppSettings.ACCELEROMETER_RAW_DATA_CSV_FILE + DateTimeHelper.getCurrentDateTime("yyyyMMdd") + ".csv";
 
         mFile = new File(
                 this.getExternalFilesDir(Environment.MEDIA_MOUNTED),
@@ -156,9 +156,9 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
                 mIsSaving = !mIsSaving;
 
                 if(mIsSaving){
-                    mTvStartTime.setText(TimeHelper.getCurrentDateTime("yyyy-MM-dd hh:mm:ss"));
+                    mTvStartTime.setText(DateTimeHelper.getCurrentDateTime("yyyy-MM-dd hh:mm:ss"));
                 } else {
-                    mTvEndTime.setText(TimeHelper.getCurrentDateTime("yyyy-MM-dd hh:mm:ss"));
+                    mTvEndTime.setText(DateTimeHelper.getCurrentDateTime("yyyy-MM-dd hh:mm:ss"));
                 }
                 break;
             case R.id.btn_en_filter:

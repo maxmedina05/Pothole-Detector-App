@@ -7,7 +7,7 @@ import java.util.Calendar;
  * Created by maxme on 2017-05-28.
  */
 
-public class TimeHelper {
+public class DateTimeHelper {
 
     public static String getCurrentDateTime(String pattern) {
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);

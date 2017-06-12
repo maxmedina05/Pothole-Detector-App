@@ -17,7 +17,7 @@ public class PotholeDbHelper extends SQLiteOpenHelper {
     private static final String LOG_TAG = PotholeDbHelper.class.getSimpleName();
     private static final String DATABASE_NAME = "potholeDB.db";
     // If you change the database schema, you must increment the database version.
-    private static final int DATABASE_VERSION = 9;
+    private static final int DATABASE_VERSION = 10;
     private static final int BUFFER_SIZE = 2048;
     private static final String SQL_CREATE_ACCELEROMETER_TABLE =
             "CREATE TABLE IF NOT EXISTS " + AccelerometerReading.TABLE_NAME + " (" +
@@ -55,6 +55,7 @@ public class PotholeDbHelper extends SQLiteOpenHelper {
     @Override
     public void onCreate(SQLiteDatabase db) {
         db.execSQL(SQL_CREATE_ACCELEROMETER_TABLE);
+        db.execSQL(SQL_CREATE_POTHOLE_TABLE);
     }
 
     @Override

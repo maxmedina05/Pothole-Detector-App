@@ -1,6 +1,7 @@
 package com.medmax.potholedetector.main;
 
 import android.app.Activity;
+import android.content.ContentValues;
 import android.content.Context;
 import android.location.Location;
 import android.location.LocationManager;
@@ -17,7 +18,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.medmax.potholedetector.R;
+import com.medmax.potholedetector.data.AccelerometerDataContract;
+import com.medmax.potholedetector.data.PotholeDataContract;
 import com.medmax.potholedetector.utilities.AppSettings;
+import com.medmax.potholedetector.utilities.DateTimeHelper;
+import com.medmax.potholedetector.utilities.PotholeDbHelper;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -35,6 +40,7 @@ public class RegisterActivity extends Activity implements OnClickListener, andro
 
     // Variables
     private File mFile;
+    private String mDeviceName;
 
     // GPS Interfaces
     private LocationManager mLocationManager;
@@ -53,9 +59,11 @@ public class RegisterActivity extends Activity implements OnClickListener, andro
         setContentView(R.layout.activity_register);
 
         // makefile
-        mFile = new File(
-                this.getExternalFilesDir(Environment.MEDIA_MOUNTED),
-                AppSettings.POTHOLE_REGISTER_CSV_FILE);
+//        mFile = new File(
+//                this.getExternalFilesDir(Environment.MEDIA_MOUNTED),
+//                AppSettings.POTHOLE_REGISTER_CSV_FILE);
+
+        mDeviceName = Build.MANUFACTURER + " " + Build.MODEL;
 
         // connect ui
         mBtnRegister = (Button) findViewById(R.id.btn_register);
@@ -96,7 +104,42 @@ public class RegisterActivity extends Activity implements OnClickListener, andro
     }
 
     private void saveToDB() {
+        Log.d(LOG_TAG, "LogData - Storing Data in database!");
+        String type = (String)mSpnTypeHole.getSelectedItem();
+//        Log.d(LOG_TAG, "LogData - " + type);
 
+        PotholeDbHelper dbHelper = PotholeDbHelper.getInstance(this.getApplicationContext());
+
+        String datestr = DateTimeHelper.getCurrentDateTime("yyyy-MM-dd hh:mm:ss");
+
+        if(dbHelper != null) {
+            ContentValues values = new ContentValues();
+            values.put(PotholeDataContract.PossiblePothole.DATE_CREATED, datestr);
+            values.put(PotholeDataContract.PossiblePothole.DEVICE_NAME, mDeviceName);
+            values.put(PotholeDataContract.PossiblePothole.LATITUDE, mLastKnownLatitude);
+            values.put(PotholeDataContract.PossiblePothole.LONGITUDE, mLastKnownLongitude);
+            values.put(PotholeDataContract.PossiblePothole.TYPE, type);
+
+            long newId = dbHelper.getWritableDatabase().insert(PotholeDataContract.PossiblePothole.TABLE_NAME, null, values);
+
+            if(newId != -1) {
+                Toast toast = Toast.makeText(
+                        this,
+                        getString(R.string.pothole_registered_success),
+                        Toast.LENGTH_SHORT);
+                toast.show();
+            } else {
+                Toast toast = Toast.makeText(
+                        this.getApplicationContext(),
+                        "Ups!, something went wrong",
+                        Toast.LENGTH_SHORT);
+                toast.show();
+            }
+
+        }
+
+        if(dbHelper != null)
+            dbHelper.close();
     }
 
     @Override
