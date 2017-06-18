@@ -18,6 +18,7 @@ public class PotholeDataContract {
         public static final String LATITUDE = "latitude";
         public static final String LONGITUDE = "longitude";
         public static final String TYPE = "type";
-
     }
+
+
 }

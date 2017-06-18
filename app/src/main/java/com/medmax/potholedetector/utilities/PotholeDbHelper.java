@@ -17,12 +17,13 @@ public class PotholeDbHelper extends SQLiteOpenHelper {
     private static final String LOG_TAG = PotholeDbHelper.class.getSimpleName();
     private static final String DATABASE_NAME = "potholeDB.db";
     // If you change the database schema, you must increment the database version.
-    private static final int DATABASE_VERSION = 10;
+    private static final int DATABASE_VERSION = 11;
     private static final int BUFFER_SIZE = 2048;
     private static final String SQL_CREATE_ACCELEROMETER_TABLE =
             "CREATE TABLE IF NOT EXISTS " + AccelerometerReading.TABLE_NAME + " (" +
                     AccelerometerReading._ID + " INTEGER PRIMARY KEY," +
                     AccelerometerReading.COLUMN_NAME_TIME + " INTEGER," +
+                    AccelerometerReading.COLUMN_NAME_DATE_CREATED + " TEXT," +
                     AccelerometerReading.COLUMN_NAME_DEVICE_NAME + " TEXT," +
                     AccelerometerReading.COLUMN_NAME_ACC_X_AXIS + " REAL," +
                     AccelerometerReading.COLUMN_NAME_ACC_Y_AXIS + " REAL," +

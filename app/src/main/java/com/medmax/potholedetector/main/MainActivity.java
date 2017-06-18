@@ -17,6 +17,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
     private Button mBtnPotholeAnalyzer;
     private Button mBtnRegisterNewPothole;
     private Button mBtnExport;
+    private Button mBtnSpeed;
     private Button mBtnSettings;
     private Button mBtnPotholeDetector;
     @Override
@@ -31,12 +32,14 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
         mBtnExport = (Button) findViewById(R.id.btn_export);
         mBtnSettings = (Button) findViewById(R.id.btn_settings);
         mBtnPotholeDetector = (Button) findViewById(R.id.btn_detector);
+        mBtnSpeed = (Button) findViewById(R.id.btn_speed);
 
         mBtnPotholeAnalyzer.setOnClickListener(this);
         mBtnRegisterNewPothole.setOnClickListener(this);
         mBtnExport.setOnClickListener(this);
         mBtnSettings.setOnClickListener(this);
         mBtnPotholeDetector.setOnClickListener(this);
+        mBtnSpeed.setOnClickListener(this);
     }
 
     @Override
@@ -53,7 +56,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
                 break;
 
             case R.id.btn_export:
-                intent = new Intent(MainActivity.this, RegisterActivity.class);
+                intent = new Intent(MainActivity.this, ExportActivity.class);
                 break;
 
             case R.id.btn_settings:
@@ -63,6 +66,11 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
             case R.id.btn_detector:
                 intent = new Intent(MainActivity.this, PotholeDetectorActivity.class);
                 break;
+
+            case R.id.btn_speed:
+                intent = new Intent(MainActivity.this, SensorActivity.class);
+                break;
+
             default:
                 // TODO: change to settings or something else
                 intent = new Intent(MainActivity.this, AnalyzerActivity.class);

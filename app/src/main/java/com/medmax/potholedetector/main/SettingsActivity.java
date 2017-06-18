@@ -24,9 +24,9 @@ public class SettingsActivity extends PreferenceActivity {
         super.onCreate(savedInstanceState);
         addPreferencesFromResource(R.xml.preferences);
 
-        sharedPrefs = PreferenceManager.getDefaultSharedPreferences(this);
-        float thresh = Float.parseFloat(sharedPrefs.getString("pref_thresh", "0.4"));
-
-        Log.d(LOG_TAG, String.format("Thresh %.2f", thresh));
+//        sharedPrefs = PreferenceManager.getDefaultSharedPreferences(this);
+//        float thresh = Float.parseFloat(sharedPrefs.getString("pref_thresh", "0.4"));
+//
+//        Log.d(LOG_TAG, String.format("Thresh %.2f", thresh));
     }
 }

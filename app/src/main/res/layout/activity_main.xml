@@ -45,6 +45,14 @@
     <Button
         android:layout_width="200dp"
         android:layout_height="wrap_content"
+        android:id="@+id/btn_speed"
+        android:layout_marginBottom="24dp"
+        android:layout_gravity="center_horizontal"
+        android:text="Speed" />
+
+    <Button
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
         android:id="@+id/btn_settings"
         android:layout_gravity="center_horizontal"
         android:text="Settings" />

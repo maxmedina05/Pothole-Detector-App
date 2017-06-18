@@ -17,6 +17,7 @@ import android.widget.ToggleButton;
 
 import com.medmax.potholedetector.R;
 import com.medmax.potholedetector.data.AccelerometerDataContract;
+import com.medmax.potholedetector.utilities.DateTimeHelper;
 import com.medmax.potholedetector.utilities.PotholeDbHelper;
 
 import java.text.DecimalFormat;
@@ -162,14 +163,6 @@ public class AnalyzerActivity extends Activity implements View.OnClickListener, 
         }
     }
 
-//    private void updateUI(float x, float y, float z, float f, long t){
-//        mTvAccAxisX.setText(String.format("%.2f", x));
-//        mTvAccAxisY.setText(String.format("%.2f", y));
-//        mTvAccAxisZ.setText(String.format("%.2f", z));
-//        mTvSamplingRate.setText(String.format("%.2f", f));
-//        mTvTimestamp.setText(Long.toString(t));
-//    }
-
     private void updateUI(){
         mTvAccAxisX.setText(String.format("%.2f", acceleration[0]));
         mTvAccAxisY.setText(String.format("%.2f", acceleration[1]));
@@ -205,8 +198,9 @@ public class AnalyzerActivity extends Activity implements View.OnClickListener, 
         Log.d(LOG_TAG, "LogData - Storing Data in database!");
         if(mDbHelper != null) {
             ContentValues values = new ContentValues();
-            values.put(AccelerometerDataContract.AccelerometerReading.COLUMN_NAME_TIME, timestamp);
+            values.put(AccelerometerDataContract.AccelerometerReading.COLUMN_NAME_TIME, mTimestamp);
             values.put(AccelerometerDataContract.AccelerometerReading.COLUMN_NAME_DEVICE_NAME, mDeviceName);
+            values.put(AccelerometerDataContract.AccelerometerReading.COLUMN_NAME_DATE_CREATED, DateTimeHelper.getFormatDate(mTimestamp, "yyyy-MM-dd hh:mm:ss"));
             values.put(AccelerometerDataContract.AccelerometerReading.COLUMN_NAME_ACC_X_AXIS, acceleration[0]);
             values.put(AccelerometerDataContract.AccelerometerReading.COLUMN_NAME_ACC_Y_AXIS, acceleration[1]);
             values.put(AccelerometerDataContract.AccelerometerReading.COLUMN_NAME_ACC_Z_AXIS, acceleration[2]);

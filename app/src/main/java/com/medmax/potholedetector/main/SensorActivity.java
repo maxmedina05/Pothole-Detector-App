@@ -66,11 +66,12 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
     private TextView mTvSamplingRate;
     private TextView mTvStartTime;
     private TextView mTvEndTime;
+    private TextView mTvSpeed;
 
     // Sensor's variables
     private SensorManager mSensorManager;
     private Sensor mSensor;
-
+    float speed = 0;
     // Multithreading
     private ThreadPoolManager mThreadPool;
 //    private AccelerometerWorker accelerometerWorker;
@@ -96,6 +97,7 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
         mTvSamplingRate = (TextView) findViewById(R.id.tv_sampling_rate);
         mTvStartTime = (TextView) findViewById(R.id.tv_start_time);
         mTvEndTime = (TextView) findViewById(R.id.tv_end_time);
+        mTvSpeed = (TextView) findViewById(R.id.tv_speed);
 
         mButton.setOnClickListener(this);
         mBtnFilter.setOnClickListener(this);
@@ -197,23 +199,24 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
         final double longitude = mLastKnownLongitude;
         final double latitude = mLastKnownLatitude;
 
-        if(mIsSaving) {
-            mThreadPool.addCallable(new Callable() {
-                @Override
-                public Object call() throws Exception {
-                    saveDataToCSV(timeStamp, mDeviceName, output[0], output[1], output[2], longitude, latitude);
-                    saveDatatoDB(timeStamp, mDeviceName, output[0], output[1], output[2], longitude, latitude);
-//                    Log.i(LOG_TAG, "onSensorChanged - background task done!");
-                    return null;
-                }
-            });
-        }
+//        if(mIsSaving) {
+//            mThreadPool.addCallable(new Callable() {
+//                @Override
+//                public Object call() throws Exception {
+//                    saveDataToCSV(timeStamp, mDeviceName, output[0], output[1], output[2], longitude, latitude);
+//                    saveDatatoDB(timeStamp, mDeviceName, output[0], output[1], output[2], longitude, latitude);
+////                    Log.i(LOG_TAG, "onSensorChanged - background task done!");
+//                    return null;
+//                }
+//            });
+//        }
 
         long endTime = System.nanoTime();
 //        Log.i(LOG_TAG, String.format("Total execution time: %d ns", (endTime-startTime)));
 
         // Displays it in the UI
         updateUI(mOutput[0], mOutput[1], mOutput[2], frequency);
+
     }
 
     private void applyLowPassFilter(SensorEvent event) {
@@ -290,8 +293,13 @@ public class SensorActivity extends AppCompatActivity implements OnClickListener
             mLastKnownLatitude = location.getLatitude();
             mLastKnownLongitude = location.getLongitude();
 
+            speed = location.getSpeed();
+            mTvSpeed.setText(String.valueOf(speed));
             mTvLatitude.setText(String.valueOf(mLastKnownLatitude));
             mTvLongitude.setText(String.valueOf(mLastKnownLongitude));
+
         }
+
+
     }
 }

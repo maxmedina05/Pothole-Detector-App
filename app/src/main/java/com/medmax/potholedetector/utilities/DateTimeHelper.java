@@ -14,4 +14,22 @@ public class DateTimeHelper {
         String currentTime = simpleDateFormat.format(Calendar.getInstance().getTime());
         return currentTime;
     }
+
+    public static String getFormatDate(int year, int month, int dayOfMonth, String pattern) {
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
+        Calendar cal = Calendar.getInstance();
+        cal.set(year, month, dayOfMonth);
+
+        String currentTime = simpleDateFormat.format(cal.getTime());
+
+        return currentTime;
+    }
+
+    public static String getFormatDate(long timestamp, String pattern) {
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
+        Calendar cal = Calendar.getInstance();
+        cal.setTimeInMillis(timestamp);
+
+        return simpleDateFormat.format(cal.getTime());
+    }
 }

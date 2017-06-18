@@ -22,13 +22,15 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <activity android:name=".main.RegisterActivity">
-        </activity>
         <activity
             android:name=".main.AnalyzerActivity"
             android:screenOrientation="portrait">
         </activity>
-        <activity android:name=".main.SettingsActivity"></activity>
-        <activity android:name=".main.PotholeDetectorActivity"></activity>
+        <activity android:name=".main.RegisterActivity"/>
+        <activity android:name=".main.SettingsActivity"/>
+        <activity android:name=".main.PotholeDetectorActivity"/>
+        <activity android:name=".main.ExportActivity"/>
+        <activity android:name=".main.SpeedMeterActivity"/>
+        <activity android:name=".main.SensorActivity"/>
     </application>
 </manifest>
