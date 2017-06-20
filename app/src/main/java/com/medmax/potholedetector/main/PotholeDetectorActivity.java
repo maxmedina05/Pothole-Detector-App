@@ -215,23 +215,43 @@ public class PotholeDetectorActivity extends Activity implements View.OnClickLis
     private void zThreshAlgorithm(float[] data, float thresh) {
         float y = data[1] / AppSettings.GRAVITY_CONSTANT;
         handleState(thresh, y);
-
-
+        
     }
 
     private void handleState(float thresh, float y) {
-        if(y < thresh && !currentState && previousState) {
-            previousState = false;
+        if(currentState && !previousState && y >= thresh) {
+            previousState = currentState;
+  //                currentState = true;
         }
-
-        if (y >= thresh) {
-            Log.d(LOG_TAG, String.format("THRESH REACHED!"));
-            currentState = true;
-        } else if (!previousState) {
+        
+        if(!currentState && previousState && y < thresh){
+            previousState = currentState;
+        }
+        
+        if(currentState && previousState && y < thresh) {
+            previousState = currentState;
             currentState = false;
-            previousState = true;
         }
-        Log.d(LOG_TAG, String.format("State Machine: State: %b\nPrevious: %b", currentState, previousState));
+        
+        if(!currentState && !previousState && y >= thresh){
+            previousState = currentState;
+            currentState = true;
+        } 
+      
+        Log.d(LOG_TAG, String.format("State Machine: State: %b\nPrevious: %b %s", currentState, previousState, stateString(new Boolean[] {currentState, previousState})));
+    }
+
+    public static String stateString(Boolean[] states){
+        if(!states[0] && !states[1])    return "Flujo Normal";
+       
+        if(states[0] && !states[1])
+                return "Cayo en un hoyo";       
+        if(!states[0] && states[1])
+                return "Salio del hoyo";
+        if(states[0] && states[1])
+                return "esta dentro del hoyo";
+        
+        return null;
     }
 
     private void startLog() {
