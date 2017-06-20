@@ -17,6 +17,7 @@ import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import com.medmax.potholedetector.R;
+import com.medmax.potholedetector.models.SensorState;
 import com.medmax.potholedetector.utilities.AppSettings;
 import com.medmax.potholedetector.utilities.PotholeDbHelper;
 
@@ -38,7 +39,6 @@ public class PotholeDetectorActivity extends Activity implements View.OnClickLis
     protected volatile float[] linearAcceleration = new float[3];
 
     private boolean isSaving = false;
-    private boolean isPothole = false;
     private PotholeDbHelper mDbHelper;
     private String mDeviceName;
     private DecimalFormat df;
@@ -46,7 +46,6 @@ public class PotholeDetectorActivity extends Activity implements View.OnClickLis
 
     // Threshold values
     private float mThresh = 2;
-    private String[] holes;
 
     private int count = 0;
     private float startTime = 0;
@@ -59,7 +58,6 @@ public class PotholeDetectorActivity extends Activity implements View.OnClickLis
     private TextView mTvAccAxisY;
     private TextView mTvAccAxisZ;
     private TextView mTvSamplingRate;
-    private TextView mTvSpeed;
 
     // Sensor's variables
     private SensorManager mSensorManager;
@@ -73,13 +71,14 @@ public class PotholeDetectorActivity extends Activity implements View.OnClickLis
     // Prefs
     SharedPreferences sharedPrefs;
 
-    private int potholesCount = 0;
+    //State Machine
+    private boolean currentState = false;
+    private boolean previousState = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_analyzer);
-        holes = getResources().getStringArray(R.array.type_holes);
 
         sharedPrefs = PreferenceManager.getDefaultSharedPreferences(this);
         float thresh = Float.parseFloat(sharedPrefs.getString("pref_thresh", "2"));
@@ -96,14 +95,10 @@ public class PotholeDetectorActivity extends Activity implements View.OnClickLis
         mTvAccAxisY = (TextView) findViewById(R.id.acc_axis_y);
         mTvAccAxisZ = (TextView) findViewById(R.id.acc_axis_z);
         mTvSamplingRate = (TextView) findViewById(R.id.tv_sampling_rate);
-        mTvSpeed = (TextView) findViewById(R.id.tv_speed);
 
         mButton.setOnClickListener(this);
 
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-//        mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-//        mSensorManager.registerListener(this, mSensor, SAMPLING_RATE);
-
         mDbHelper = PotholeDbHelper.getInstance(this.getApplicationContext());
 
         mHandler = new Handler();
@@ -188,7 +183,6 @@ public class PotholeDetectorActivity extends Activity implements View.OnClickLis
         mTvAccAxisZ.setText(String.format("%.2f", acceleration[2]));
         mTvSamplingRate.setText(String.format("%.2f", hz));
 
-//        mTvSpeed.setText();
     }
 
     private void calculateSensorFrequency() {
@@ -206,12 +200,6 @@ public class PotholeDetectorActivity extends Activity implements View.OnClickLis
         hz = (count++ / ((currentTime - startTime) / 1000000000.0f));
     }
 
-    private void calculateSpeed(){
-        float timestamp = (currentTime - startTime) / 1000000000.0f;
-
-
-    }
-
     private void resetSensorTimer() {
         count = 0;
         startTime = 0;
@@ -226,11 +214,24 @@ public class PotholeDetectorActivity extends Activity implements View.OnClickLis
 
     private void zThreshAlgorithm(float[] data, float thresh) {
         float y = data[1] / AppSettings.GRAVITY_CONSTANT;
-        if (!isPothole && y >= thresh) {
-            Log.d(LOG_TAG, String.format("THRESH REACHED!"));
-            Log.d(LOG_TAG, String.format("PotholeCount: %d", ++potholesCount));
-//            isPothole = true;
+        handleState(thresh, y);
+
+
+    }
+
+    private void handleState(float thresh, float y) {
+        if(y < thresh && !currentState && previousState) {
+            previousState = false;
         }
+
+        if (y >= thresh) {
+            Log.d(LOG_TAG, String.format("THRESH REACHED!"));
+            currentState = true;
+        } else if (!previousState) {
+            currentState = false;
+            previousState = true;
+        }
+        Log.d(LOG_TAG, String.format("State Machine: State: %b\nPrevious: %b", currentState, previousState));
     }
 
     private void startLog() {
