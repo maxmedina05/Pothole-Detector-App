@@ -19,10 +19,12 @@ import android.widget.ToggleButton;
 import com.medmax.potholedetector.R;
 import com.medmax.potholedetector.models.SensorState;
 import com.medmax.potholedetector.utilities.AppSettings;
+import com.medmax.potholedetector.utilities.DateTimeHelper;
 import com.medmax.potholedetector.utilities.PotholeDbHelper;
 
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.util.Date;
 import java.util.Locale;
 
 /**
@@ -30,6 +32,7 @@ import java.util.Locale;
  */
 
 public class PotholeDetectorActivity extends BaseSensorActivity {
+    public static final String LOG_TAG = PotholeDetectorActivity.class.getSimpleName();
     private float mThresh;
 
     //State Machine
@@ -38,12 +41,14 @@ public class PotholeDetectorActivity extends BaseSensorActivity {
 
     private String startDate = "";
     private String endDate = "";
-
+    private String pattern = "yyyy-MM-dd hh:mm:ss";
     @Override
     protected void configInit() {
         super.configInit();
         SharedPreferences sharedPrefs = PreferenceManager.getDefaultSharedPreferences(this);
         mThresh = Float.parseFloat(sharedPrefs.getString("pref_thresh", "2"));
+
+        startDate = endDate = DateTimeHelper.getCurrentDateTime(pattern);
     }
 
     @Override
@@ -53,15 +58,21 @@ public class PotholeDetectorActivity extends BaseSensorActivity {
         float y = acceleration[1] / AppSettings.GRAVITY_CONSTANT;;
         handleState(y, mThresh);
 
-        yThreshAlgorithm(acceleration, mThresh);
+        yThreshAlgorithm();
     }
 
-    private void yThreshAlgorithm(float[] data, float thresh) {
+    private void yThreshAlgorithm() {
+        if(hasFallenInPothole()){
+            startDate = DateTimeHelper.getCurrentDateTime(pattern);
+        }
 
+        if(hasExitPothole()){
+            endDate = DateTimeHelper.getCurrentDateTime(pattern);
+            Log.d(LOG_TAG, "Storing - Store to database");
+        }
     }
 
     private void handleState(float thresh, float y) {
-
         // Cayo en el hoyo -> está en el hoyo
         if(currentState && !previousState) {
             previousState = true;
@@ -85,6 +96,14 @@ public class PotholeDetectorActivity extends BaseSensorActivity {
         }
 
         Log.d(LOG_TAG, String.format("State Machine: State: %b\nPrevious: %b %s", currentState, previousState, stateString(new Boolean[] {currentState, previousState})));
+    }
+
+    private boolean hasFallenInPothole(){
+        return (currentState && !previousState);
+    }
+
+    private boolean hasExitPothole() {
+        return (!currentState && previousState);
     }
 
     public static String stateString(Boolean[] states){

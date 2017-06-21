@@ -32,7 +32,7 @@ import java.util.Locale;
 
 public abstract class BaseSensorActivity extends Activity implements View.OnClickListener, SensorEventListener, Runnable {
     private int SAMPLING_RATE = SensorManager.SENSOR_DELAY_FASTEST;
-    public static final String LOG_TAG = BaseSensorActivity.class.getSimpleName();
+    private static final String LOG_TAG = BaseSensorActivity.class.getSimpleName();
 
     protected volatile float[] linearAcceleration = new float[3];
     protected volatile float[] acceleration = new float[3];
