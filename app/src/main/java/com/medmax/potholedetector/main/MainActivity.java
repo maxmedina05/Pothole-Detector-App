@@ -68,7 +68,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener {
                 break;
 
             case R.id.btn_speed:
-                intent = new Intent(MainActivity.this, SensorActivity.class);
+                intent = new Intent(MainActivity.this, AccelerometerActivity.class);
                 break;
 
             default:

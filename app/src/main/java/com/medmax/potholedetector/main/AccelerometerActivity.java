@@ -1,53 +1,54 @@
 package com.medmax.potholedetector.main;
 
 import android.app.Activity;
-import android.content.ContentValues;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
-import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import com.medmax.potholedetector.R;
-import com.medmax.potholedetector.data.AccelerometerDataContract;
+import com.medmax.potholedetector.multithreading.ThreadPoolManager;
+import com.medmax.potholedetector.utilities.AppSettings;
 import com.medmax.potholedetector.utilities.DateTimeHelper;
-import com.medmax.potholedetector.utilities.PotholeDbHelper;
 
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Locale;
+import java.util.concurrent.Callable;
 
 /**
- * Created by Max Medina on 2017-06-20.
+ * Created by maxme on 2017-06-29.
  */
 
-public abstract class BaseSensorActivity extends Activity implements View.OnClickListener, SensorEventListener, Runnable {
-    private int SAMPLING_RATE = SensorManager.SENSOR_DELAY_FASTEST;
-    private static final String LOG_TAG = BaseSensorActivity.class.getSimpleName();
+public class AccelerometerActivity extends Activity implements SensorEventListener, View.OnClickListener, Runnable {
 
-    protected volatile float[] linearAcceleration = new float[3];
-    protected volatile float[] acceleration = new float[3];
+    // constants
+    public static final String LOG_TAG = AccelerometerActivity.class.getSimpleName();
+    private int SAMPLING_RATE = SensorManager.SENSOR_DELAY_FASTEST;
 
     // Variables
+    protected volatile float[] acceleration = new float[3];
     private boolean isSaving = false;
-    protected PotholeDbHelper mDbHelper;
-    protected String mDeviceName;
-    private long mTimestamp = 0;
+    // The idSeed of the log output
+    private int idSeed = 0;
 
     // for calculating the frequency
     private int count = 0;
     private float startTime = 0;
     private float currentTime = 0;
     protected float hz = 0;
+    private float mTimestamp = 0;
 
     // UI Components
     private ToggleButton mButton;
@@ -55,6 +56,7 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     private TextView mTvAccAxisY;
     private TextView mTvAccAxisZ;
     private TextView mTvSamplingRate;
+    private TextView mTvTimestamp;
 
     // Sensor's variables
     private SensorManager mSensorManager;
@@ -63,6 +65,11 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     private Handler mHandler;
     private Runnable mRunnable;
     private Thread mThread;
+    private ThreadPoolManager mThreadPool;
+    private String mDeviceName;
+    private File mFile;
+
+    private long logTime = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,11 +81,11 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
         mTvAccAxisY = (TextView) findViewById(R.id.acc_axis_y);
         mTvAccAxisZ = (TextView) findViewById(R.id.acc_axis_z);
         mTvSamplingRate = (TextView) findViewById(R.id.tv_sampling_rate);
+        mTvTimestamp = (TextView) findViewById(R.id.tv_timestamp);
 
         mButton.setOnClickListener(this);
 
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        mDbHelper = PotholeDbHelper.getInstance(this.getApplicationContext());
 
         mHandler = new Handler();
 
@@ -89,20 +96,25 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
                 updateUI();
             }
         };
-
-        configInit();
-    }
-
-    protected void configInit() {
+        mThreadPool = ThreadPoolManager.getsInstance();
         mDeviceName = Build.MANUFACTURER + " " + Build.MODEL;
+        String fileName = AppSettings.ACCELEROMETER_RAW_DATA_CSV_FILE + DateTimeHelper.getCurrentDateTime("yyyyMMdd_hhmmss") + ".csv";
+
+        File exportDir = new File(Environment.getExternalStorageDirectory(), AppSettings.POTHOLE_DIRECTORY);
+        if(!exportDir.exists()){
+            exportDir.mkdir();
+        }
+
+        mFile = new File(
+                exportDir,
+                fileName);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        mSensorManager.registerListener(this, mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SAMPLING_RATE);
-        mSensorManager.registerListener(this, mSensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION), SAMPLING_RATE);
         resetSensorTimer();
+        mSensorManager.registerListener(this, mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SAMPLING_RATE);
         mHandler.post(mRunnable);
     }
 
@@ -114,32 +126,31 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     }
 
     @Override
-    protected void onDestroy() {
-        mDbHelper.close();
-        super.onDestroy();
-    }
-
-    @Override
-    public void run() {
-        while (isSaving && !Thread.currentThread().isInterrupted()) {
-            logData();
-        }
-        Thread.currentThread().interrupt();
-    }
-
-    @Override
     public void onSensorChanged(SensorEvent event) {
         if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
             calculateSensorFrequency();
-            mTimestamp = System.currentTimeMillis();
             System.arraycopy(event.values, 0, acceleration, 0, event.values.length);
+
+            if (idSeed == 0)
+            {
+                logTime = System.currentTimeMillis();
+            }
+            // Store the data in SQL using a background process.
+//            final long timeStamp =  System.currentTimeMillis() + ((event.timestamp - SystemClock.elapsedRealtimeNanos())/1000000L);
+            final float timeStamp = (System.currentTimeMillis() - logTime) / 1000.0f;
+
+            if(isSaving) {
+                mTimestamp = timeStamp;
+                mThreadPool.addCallable(new Callable() {
+                    @Override
+                    public Object call() throws Exception {
+                        saveDataToCSV(idSeed++, timeStamp, mDeviceName, acceleration[0], acceleration[1], acceleration[2]);
+                        Log.i(LOG_TAG, "onSensorChanged - background task done!");
+                        return null;
+                    }
+                });
+            }
         }
-
-        if (event.sensor.getType() == Sensor.TYPE_LINEAR_ACCELERATION){
-            System.arraycopy(event.values, 0, linearAcceleration, 0, event.values.length);
-        }
-
-
     }
 
     @Override
@@ -158,14 +169,16 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
         }
     }
 
+    @Override
+    public void run() {
+        Thread.currentThread().interrupt();
+    }
+
     private void handleOnSavingToggle() {
         isSaving = !isSaving;
-
-        if (isSaving) {
-            startLog();
-        } else {
-            stopLog();
-        }
+        mTimestamp = 0;
+        resetSensorTimer();
+        idSeed = 0;
     }
 
     private void updateUI() {
@@ -173,6 +186,34 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
         mTvAccAxisY.setText(String.format(Locale.US, "%.2f", acceleration[1]));
         mTvAccAxisZ.setText(String.format(Locale.US, "%.2f", acceleration[2]));
         mTvSamplingRate.setText(String.format(Locale.US, "%.2f", hz));
+        mTvTimestamp.setText(String.format(Locale.US, "%.4f", mTimestamp));
+    }
+
+    private synchronized void saveDataToCSV(int idCount, float timestamp, String deviceName, float x, float y, float z) {
+        try (BufferedWriter bwriter = new BufferedWriter(new FileWriter(mFile, true))) {
+
+            if(idCount == 0) {
+                bwriter.write("ID,Date,Timestamp,DeviceName,X-AXIS,Y-AXIS,Z-AXIS");
+            }
+            else {
+                bwriter.write(String.format(
+                        Locale.US,
+                        "%d, %s, %f, %s, %f, %f, %f",
+                        idCount,
+                        DateTimeHelper.getCurrentDateTime("yyyy-MM-dd hh:mm:ss.SSS"),
+                        timestamp,
+                        deviceName,
+                        x,
+                        y,
+                        z)
+                );
+            }
+            bwriter.newLine();
+            bwriter.close();
+
+        } catch (IOException e) {
+            Log.e(LOG_TAG, e.toString());
+        }
     }
 
     private void calculateSensorFrequency() {
@@ -190,31 +231,5 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
         hz = 0;
     }
 
-    protected void logData() {
-        Log.d(LOG_TAG, "Logging accelerometer data!");
 
-//        if(mDbHelper != null) {
-//            ContentValues values = new ContentValues();
-//            values.put(AccelerometerDataContract.AccelerometerReading.COLUMN_NAME_TIME, mTimestamp);
-//            values.put(AccelerometerDataContract.AccelerometerReading.COLUMN_NAME_DEVICE_NAME, mDeviceName);
-//            values.put(AccelerometerDataContract.AccelerometerReading.COLUMN_NAME_DATE_CREATED, DateTimeHelper.getFormatDate(mTimestamp, "yyyy-MM-dd hh:mm:ss"));
-//            values.put(AccelerometerDataContract.AccelerometerReading.COLUMN_NAME_ACC_X_AXIS, acceleration[0]);
-//            values.put(AccelerometerDataContract.AccelerometerReading.COLUMN_NAME_ACC_Y_AXIS, acceleration[1]);
-//            values.put(AccelerometerDataContract.AccelerometerReading.COLUMN_NAME_ACC_Z_AXIS, acceleration[2]);
-//
-//            mDbHelper.getWritableDatabase().insert(AccelerometerDataContract.AccelerometerReading.TABLE_NAME, null, values);
-//        }
-    }
-
-    private void startLog() {
-        mThread = new Thread(BaseSensorActivity.this);
-        mThread.start();
-    }
-
-    private void stopLog() {
-        if (mThread != null) {
-            mThread.interrupt();
-            mThread = null;
-        }
-    }
 }

@@ -48,7 +48,7 @@
         android:id="@+id/btn_speed"
         android:layout_marginBottom="24dp"
         android:layout_gravity="center_horizontal"
-        android:text="Speed" />
+        android:text="Accele" />
 
     <Button
         android:layout_width="200dp"

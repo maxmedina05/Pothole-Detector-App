@@ -32,5 +32,6 @@
         <activity android:name=".main.ExportActivity"/>
         <activity android:name=".main.SpeedMeterActivity"/>
         <activity android:name=".main.SensorActivity"/>
+        <activity android:name=".main.AccelerometerActivity"/>
     </application>
 </manifest>
