@@ -61,6 +61,7 @@ public class AccelerometerActivity extends Activity implements SensorEventListen
     // Sensor's variables
     private SensorManager mSensorManager;
 
+    
     // Handler for the UI plots so everything plots smoothly
     private Handler mHandler;
     private Runnable mRunnable;
