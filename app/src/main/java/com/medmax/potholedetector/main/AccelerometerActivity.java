@@ -144,7 +144,7 @@ public class AccelerometerActivity extends Activity implements SensorEventListen
                 mThreadPool.addCallable(new Callable() {
                     @Override
                     public Object call() throws Exception {
-                        saveDataToCSV(idSeed++, timeStamp, mDeviceName, acceleration[0], acceleration[1], acceleration[2]);
+                        saveDataToCSV(++idSeed, timeStamp, mDeviceName, acceleration[0], acceleration[1], acceleration[2]);
                         Log.i(LOG_TAG, "onSensorChanged - background task done!");
                         return null;
                     }
@@ -193,12 +193,12 @@ public class AccelerometerActivity extends Activity implements SensorEventListen
         try (BufferedWriter bwriter = new BufferedWriter(new FileWriter(mFile, true))) {
 
             if(idCount == 0) {
-                bwriter.write("ID,Date,Timestamp,DeviceName,X-AXIS,Y-AXIS,Z-AXIS");
+                bwriter.write("ID,Date,Timestamp,DeviceName,X-Axis,Y-Axis,Z-Axis");
             }
             else {
                 bwriter.write(String.format(
                         Locale.US,
-                        "%d, %s, %f, %s, %f, %f, %f",
+                        "%d,%s,%f,%s,%f,%f,%f",
                         idCount,
                         DateTimeHelper.getCurrentDateTime("yyyy-MM-dd hh:mm:ss.SSS"),
                         timestamp,
