@@ -1,83 +1,61 @@
 package com.medmax.potholedetector.main;
 
-import android.content.Intent;
-import android.content.SharedPreferences;
+import android.app.Activity;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
-import android.support.v7.app.AppCompatActivity;
+import android.support.annotation.Nullable;
+import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.View;
-import android.view.View.OnClickListener;
 import android.widget.Button;
+import android.widget.Toolbar;
 
 import com.medmax.potholedetector.R;
 
-public class MainActivity extends AppCompatActivity implements OnClickListener {
+public class MainActivity extends Activity implements View.OnClickListener {
+
+    public static final String LOG_TAG = MainActivity.class.getSimpleName();
 
     // UI Components
-    private Button mBtnPotholeAnalyzer;
-    private Button mBtnRegisterNewPothole;
-    private Button mBtnExport;
-    private Button mBtnSpeed;
-    private Button mBtnSettings;
-    private Button mBtnPotholeDetector;
+    Button btnLogger;
+    Button btnFinder;
+
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.activity_main);
+        Toolbar myToolbar = (Toolbar) findViewById(R.id.my_toolbar);
+        setActionBar(myToolbar);
 
-        PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
+        btnLogger = (Button)findViewById(R.id.btn_logger);
+        btnFinder = (Button)findViewById(R.id.btn_finder);
 
-        mBtnPotholeAnalyzer = (Button) findViewById(R.id.btn_analyze);
-        mBtnRegisterNewPothole = (Button) findViewById(R.id.btn_register);
-        mBtnExport = (Button) findViewById(R.id.btn_export);
-        mBtnSettings = (Button) findViewById(R.id.btn_settings);
-        mBtnPotholeDetector = (Button) findViewById(R.id.btn_detector);
-        mBtnSpeed = (Button) findViewById(R.id.btn_speed);
+        btnLogger.setOnClickListener(this);
+        btnFinder.setOnClickListener(this);
+    }
 
-        mBtnPotholeAnalyzer.setOnClickListener(this);
-        mBtnRegisterNewPothole.setOnClickListener(this);
-        mBtnExport.setOnClickListener(this);
-        mBtnSettings.setOnClickListener(this);
-        mBtnPotholeDetector.setOnClickListener(this);
-        mBtnSpeed.setOnClickListener(this);
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.main_menu, menu);
+        return true;
     }
 
     @Override
     public void onClick(View v) {
-        int viewId = v.getId();
-        Intent intent;
-        switch (viewId){
-            case R.id.btn_analyze:
-                intent = new Intent(MainActivity.this, AnalyzerActivity.class);
+        switch (v.getId()){
+
+            case R.id.btn_finder:
+                Log.d(LOG_TAG, "btn_finder");
                 break;
 
-            case R.id.btn_register:
-                intent = new Intent(MainActivity.this, RegisterActivity.class);
-                break;
-
-            case R.id.btn_export:
-                intent = new Intent(MainActivity.this, ExportActivity.class);
-                break;
-
-            case R.id.btn_settings:
-                intent = new Intent(MainActivity.this, SettingsActivity.class);
-                break;
-
-            case R.id.btn_detector:
-                intent = new Intent(MainActivity.this, PotholeDetectorActivity.class);
-                break;
-
-            case R.id.btn_speed:
-                intent = new Intent(MainActivity.this, AccelerometerActivity.class);
+            case R.id.btn_logger:
+                Log.d(LOG_TAG, "btn_finder");
                 break;
 
             default:
-                // TODO: change to settings or something else
-                intent = new Intent(MainActivity.this, AnalyzerActivity.class);
                 break;
         }
-
-        startActivity(intent);
     }
-
 }

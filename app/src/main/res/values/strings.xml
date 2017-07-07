@@ -1,25 +1,6 @@
 <resources>
-    <string name="app_name">Pothole Detector</string>
+    <string name="app_name">Pothole Finder</string>
     <string name="title_activity_pothole_register">PotholeRegisterActivity</string>
-    <string name="pothole_analyzer">Pothole Analyzer</string>
-    <string name="register_new_pothole">Register new Pothole</string>
-    <string name="longitude">Longitude:</string>
-    <string name="pothole_registered_success">Pothole registered successfully!</string>
-    <string name="title_activity_settings">Settings</string>
+    <string name="action_settings">Settings</string>
 
-    <!-- Strings related to Settings -->
-    <string name="pref_thresh">pref_thresh</string>
-    <string name="pref_zdiff">pref_zdiff</string>
-    <string name="pref_stdev">pref_stdev</string>
-    <string name="pref_gzero">pref_gzero</string>
-    <string name="ok">Ok</string>
-    <string name="cancel">Cancel</string>
-
-    <string-array name="type_holes">
-        <item>Hoyo</item>
-        <item>Policia acostado</item>
-        <item>Baden</item>
-        <item>Junta</item>
-        <item>Otros</item>
-    </string-array>
 </resources>

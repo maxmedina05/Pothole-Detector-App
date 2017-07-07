@@ -1,59 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.v7.widget.LinearLayoutCompat
+<LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    tools:context="com.medmax.potholedetector.main.SensorActivity">
+    android:orientation="vertical">
 
-    <Button
-        android:layout_width="200dp"
-        android:layout_height="wrap_content"
-        android:id="@+id/btn_analyze"
-        android:text="@string/pothole_analyzer"
-        android:layout_marginTop="40dp"
-        android:layout_marginBottom="24dp"
-        android:layout_gravity="center_horizontal"
+    <Toolbar
+        android:id="@+id/my_toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?actionBarSize"
+        android:theme="@style/AppTheme.ToolbarStyle"
+        android:elevation="4dp"
         />
 
     <Button
-        android:layout_width="200dp"
-        android:layout_height="wrap_content"
-        android:id="@+id/btn_detector"
+        android:id="@+id/btn_logger"
+        android:layout_width="160dp"
+        android:layout_height="64dp"
         android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="24dp"
-        android:text="Pothole Detector" />
+        android:layout_marginTop="32dp"
+        android:text="Logger"/>
 
     <Button
-        android:layout_width="200dp"
-        android:layout_height="wrap_content"
-        android:id="@+id/btn_register"
+        android:id="@+id/btn_finder"
+        android:layout_width="160dp"
+        android:layout_height="64dp"
         android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="24dp"
-        android:text="Register" />
-
-    <Button
-        android:layout_width="200dp"
-        android:layout_height="wrap_content"
-        android:id="@+id/btn_export"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="24dp"
-        android:text="Export" />
-
-    <Button
-        android:layout_width="200dp"
-        android:layout_height="wrap_content"
-        android:id="@+id/btn_speed"
-        android:layout_marginBottom="24dp"
-        android:layout_gravity="center_horizontal"
-        android:text="Accele" />
-
-    <Button
-        android:layout_width="200dp"
-        android:layout_height="wrap_content"
-        android:id="@+id/btn_settings"
-        android:layout_gravity="center_horizontal"
-        android:text="Settings" />
-</android.support.v7.widget.LinearLayoutCompat>
+        android:layout_marginTop="32dp"
+        android:text="Finder"/>
+</LinearLayout>
