@@ -8,4 +8,12 @@
         android:inputType="numberDecimal"
         android:title="@string/pref_title_z_thresh_value"
         android:summary="@string/pref_summary_z_thresh_summary"/>
+
+    <ListPreference
+        android:key="pref_algorithm_list"
+        android:title="@string/pref_algorithm_list_title"
+        android:entries="@array/pref_algorithm_list"
+        android:entryValues="@array/pref_algorithm_list_values"
+        android:defaultValue="100"
+        />
 </PreferenceScreen>

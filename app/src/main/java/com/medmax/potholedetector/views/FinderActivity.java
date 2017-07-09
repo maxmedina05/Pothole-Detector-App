@@ -1,6 +1,5 @@
 package com.medmax.potholedetector.views;
 
-import android.app.Activity;
 import android.content.SharedPreferences;
 import android.hardware.SensorEvent;
 import android.os.Bundle;

@@ -51,17 +51,6 @@ public class PotholeFinder {
         return (!currentState && previousState);
     }
 
-
-//    public void zTreshAlgorithm(){
-////        if(hasFallenInPothole()){
-////
-////        }
-//
-//        if(hasExitPothole()){
-//
-//        }
-//    }
-
     public static String stateString(Boolean[] states){
         if(!states[0] && !states[1])
             return "Flujo Normal";

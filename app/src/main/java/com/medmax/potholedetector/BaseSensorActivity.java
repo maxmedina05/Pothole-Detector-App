@@ -36,6 +36,7 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     protected String mDeviceName = "";
     protected float mTimestamp = 0;
     protected boolean startLogger = false;
+    protected long loggerStartTime = 0;
 
     // Sensor properties
     protected SensorManager mSensorManager;
@@ -109,6 +110,13 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     public void onClick(View v) {
         startLogger = !startLogger;
 
+        if(startLogger){
+            loggerStartTime = System.currentTimeMillis();
+        } else {
+
+            mTimestamp = 0;
+        }
+
         myOnClick(v);
     }
 
@@ -117,6 +125,11 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     @Override
     public void onSensorChanged(SensorEvent event) {
         if (Sensor.TYPE_ACCELEROMETER == event.sensor.getType()) {
+
+            if(startLogger){
+                mTimestamp = (System.currentTimeMillis() - loggerStartTime) / 1000.0f;
+            }
+
             calculateFrequency();
             System.arraycopy(event.values, 0, acc_values, 0, event.values.length);
 

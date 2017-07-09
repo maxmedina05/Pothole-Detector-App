@@ -31,7 +31,6 @@ public class LoggerActivity extends BaseSensorActivity {
 
     // Variables
     private int mIdSeed = 0;
-    private long loggerStartTime = 0;
 
     // Helpers
     CSVHelper csvHelper;
@@ -65,11 +64,7 @@ public class LoggerActivity extends BaseSensorActivity {
     @Override
     public void myOnSensorChanged(SensorEvent event) {
         if (csvHelper.isOpen()) {
-            if (mIdSeed == 0) {
-                loggerStartTime = System.currentTimeMillis();
-            }
 
-            mTimestamp = (System.currentTimeMillis() - loggerStartTime) / 1000.0f;
             mThreadManager.addCallable(new Callable() {
                 @Override
                 public Object call() throws Exception {

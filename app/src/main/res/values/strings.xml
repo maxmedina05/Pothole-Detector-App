@@ -5,5 +5,17 @@
     <string name="pref_title_z_thresh_value">Z-Thresh tvalue</string>
     <string name="pref_summary_z_thresh_summary">Z-Thresh Algorithm thresh value</string>
     <string name="pref_zthresh_key">pref_zthresh_key</string>
+    <string name="pref_algorithm_list_title">Detector algorithm</string>
 
+    <string name="z_thresh_algorithm">Z-Thresh Algorithm</string>
+
+    <string-array name="pref_algorithm_list">
+        <item>@string/z_thresh_algorithm</item>
+        <item>Robs Algorithm</item>
+    </string-array>
+
+    <string-array name="pref_algorithm_list_values">
+        <item>100</item>
+        <item>200</item>
+    </string-array>
 </resources>
