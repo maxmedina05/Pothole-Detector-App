@@ -1,6 +1,7 @@
-package com.medmax.potholedetector.main;
+package com.medmax.potholedetector.views;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -13,6 +14,9 @@ import android.widget.Toolbar;
 
 import com.medmax.potholedetector.R;
 
+/**
+ *  Max Medina
+ */
 public class MainActivity extends Activity implements View.OnClickListener {
 
     public static final String LOG_TAG = MainActivity.class.getSimpleName();
@@ -56,18 +60,26 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     @Override
     public void onClick(View v) {
+
+        Intent intent;
+
         switch (v.getId()){
 
             case R.id.btn_finder:
                 Log.d(LOG_TAG, "btn_finder");
+                intent = new Intent(MainActivity.this, FinderActivity.class);
                 break;
 
             case R.id.btn_logger:
-                Log.d(LOG_TAG, "btn_finder");
+                Log.d(LOG_TAG, "btn_logger");
+                intent = new Intent(MainActivity.this, LoggerActivity.class);
                 break;
 
             default:
+                intent = new Intent(MainActivity.this, LoggerActivity.class);
                 break;
         }
+
+        startActivity(intent);
     }
 }
