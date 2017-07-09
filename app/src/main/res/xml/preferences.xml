@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
-
+    <EditTextPreference
+        android:defaultValue="1.4"
+        android:key="@string/pref_zthresh_key"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:inputType="numberDecimal"
+        android:title="@string/pref_title_z_thresh_value"
+        android:summary="@string/pref_summary_z_thresh_summary"/>
 </PreferenceScreen>

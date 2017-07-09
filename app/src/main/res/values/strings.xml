@@ -2,5 +2,8 @@
     <string name="app_name">Pothole Finder</string>
     <string name="title_activity_pothole_register">PotholeRegisterActivity</string>
     <string name="action_settings">Settings</string>
+    <string name="pref_title_z_thresh_value">Z-Thresh tvalue</string>
+    <string name="pref_summary_z_thresh_summary">Z-Thresh Algorithm thresh value</string>
+    <string name="pref_zthresh_key">pref_zthresh_key</string>
 
 </resources>
