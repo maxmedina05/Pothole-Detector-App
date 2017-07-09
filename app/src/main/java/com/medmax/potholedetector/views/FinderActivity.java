@@ -50,6 +50,7 @@ public class FinderActivity extends BaseSensorActivity {
         if(startLogger) {
             finder.handleState(z);
             if(finder.isThereAPothole()){
+                Log.d(LOG_TAG, "I Pothole was found!");
                 sendToast("I Pothole was found!");
             }
         }
