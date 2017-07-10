@@ -60,6 +60,18 @@ public class PotholeDataFrame {
         return std;
     }
 
+    public double computeMax(){
+        double max = dataframe.get(0).getzAxis();
+
+        for (AccData acd : dataframe) {
+            double x = acd.getzAxis();
+            if(x > max) {
+                max = x;
+            }
+        }
+        return max;
+    }
+
     public void addRow(AccData row) {
         dataframe.add(row);
     }

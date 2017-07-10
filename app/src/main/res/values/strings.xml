@@ -8,6 +8,12 @@
     <string name="pref_algorithm_list_title">Detector algorithm</string>
 
     <string name="z_thresh_algorithm">Z-Thresh Algorithm</string>
+    <string name="pref_algorithm_list_key">pref_algorithm_list_key</string>
+    <string name="robs_algorithm_parameters">Rob\'s Algorithm Parameters</string>
+    <string name="pref_std_thresh">pref_std_thresh</string>
+    <string name="pref_k_value">pref_k_value</string>
+    <string name="pref_window_size">pref_window_size</string>
+    <string name="pref_small_window_size">pref_small_window_size</string>
 
     <string-array name="pref_algorithm_list">
         <item>@string/z_thresh_algorithm</item>

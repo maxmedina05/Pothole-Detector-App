@@ -111,7 +111,7 @@ public class LoggerActivity extends BaseSensorActivity {
         }
     }
 
-    private void logChanges(float timestamp) throws IOException {
+    private synchronized void logChanges(float timestamp) throws IOException {
         // check again to see if the file is still open
         if (csvHelper.isOpen()) {
             if (mIdSeed == 0) {

@@ -10,10 +10,48 @@
         android:summary="@string/pref_summary_z_thresh_summary"/>
 
     <ListPreference
-        android:key="pref_algorithm_list"
+        android:key="@string/pref_algorithm_list_key"
         android:title="@string/pref_algorithm_list_title"
         android:entries="@array/pref_algorithm_list"
         android:entryValues="@array/pref_algorithm_list_values"
         android:defaultValue="100"
         />
+
+    <PreferenceCategory
+        android:title="@string/robs_algorithm_parameters"
+        android:key="robs_algorithm_parameters_key">
+
+        <EditTextPreference
+            android:defaultValue="1"
+            android:key="@string/pref_window_size"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:inputType="numberDecimal"
+            android:title="Window Size"/>
+
+        <EditTextPreference
+            android:defaultValue="0.1"
+            android:key="@string/pref_small_window_size"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:inputType="numberDecimal"
+            android:title="Window Small Size"/>
+
+        <EditTextPreference
+            android:defaultValue="3"
+            android:key="@string/pref_k_value"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:inputType="numberDecimal"
+            android:title="K"
+            android:summary="Multiply the std K times"/>
+
+        <EditTextPreference
+            android:defaultValue="0.19"
+            android:key="@string/pref_std_thresh"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:inputType="numberDecimal"
+            android:title="STD Thresh"/>
+    </PreferenceCategory>
 </PreferenceScreen>
