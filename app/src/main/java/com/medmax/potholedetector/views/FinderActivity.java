@@ -3,6 +3,7 @@ package com.medmax.potholedetector.views;
 import android.content.SharedPreferences;
 import android.hardware.SensorEvent;
 import android.os.Bundle;
+import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -16,6 +17,9 @@ import com.medmax.potholedetector.data.analyzer.PotholeFinder;
 import com.medmax.potholedetector.models.AccData;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 
 /**
@@ -27,40 +31,43 @@ public class FinderActivity extends BaseSensorActivity {
     public final static String LOG_TAG = FinderActivity.class.getSimpleName();
 
     // Analyzer
-    private PotholeFinder finder;
-    private int selectedAlgorithm = 100;
-    private PotholeDataFrame dataframe;
+    private PotholeFinder mFinder;
+    private int mSelectedAlgorithm = 100;
+    private PotholeDataFrame mDataFrame;
 
     private float stime = 0;
     private float ctime = 0;
 
+    // Preferences
     float winSize = 0.5f;
     float smWinSize = 0.1f;
     float K = 3.0f;
     float std_thresh = 0.19f;
-    BufferedReader breader;
+
+    // Debugger fields
+    BufferedReader mReader;
+    private boolean isDebuggerOn = false;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        finder = new PotholeFinder();
-        dataframe = new PotholeDataFrame();
+        mFinder = new PotholeFinder();
+        mDataFrame = new PotholeDataFrame();
 
         SharedPreferences sharedPrefs = PreferenceManager.getDefaultSharedPreferences(this);
         String key = getResources().getString(R.string.pref_zthresh_key);
 
-        float ztreshvalue = Float.parseFloat(sharedPrefs.getString(key, "1.4"));
-        finder.setzThreshValue(ztreshvalue);
+        float ztreshv = Float.parseFloat(sharedPrefs.getString(key, "1.4"));
+        mFinder.setzThreshValue(ztreshv);
 
         key = getResources().getString(R.string.pref_algorithm_list_key);
-        selectedAlgorithm = Integer.parseInt(sharedPrefs.getString(key, "100"));
+        mSelectedAlgorithm = Integer.parseInt(sharedPrefs.getString(key, "100"));
 
         loadRobsAlgorithmParameters(sharedPrefs);
 
         // TODO: Remove log
-        Log.d(LOG_TAG, String.format("Selected Algorithm: %d", selectedAlgorithm));
-
+        Log.d(LOG_TAG, String.format("Selected Algorithm: %d", mSelectedAlgorithm));
     }
 
     private void loadRobsAlgorithmParameters(SharedPreferences sharedPrefs) {
@@ -82,26 +89,31 @@ public class FinderActivity extends BaseSensorActivity {
     protected void onResume() {
         super.onResume();
 
-//        File downloadsDir = new File(Environment.getExternalStorageDirectory(), "Download");
-//        File file = new File(downloadsDir, "dataset_jeepeta.csv");
-//        try {
-//            breader = new BufferedReader(new FileReader(file));
-//            breader.readLine();
-//        } catch (FileNotFoundException e) {
-//            e.printStackTrace();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
+        if(isDebuggerOn){
+            loadDataFromCSV();
+        }
+    }
 
+    private void loadDataFromCSV() {
+        File downloadsDir = new File(Environment.getExternalStorageDirectory(), "Download");
+        File file = new File(downloadsDir, "dataset_jeepeta.csv");
+        try {
+            mReader = new BufferedReader(new FileReader(file));
+            mReader.readLine();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
 
-        if(breader != null) {
+        if(mReader != null) {
             try {
-                breader.close();
+                mReader.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -122,29 +134,28 @@ public class FinderActivity extends BaseSensorActivity {
         float z = event.values[2];
         float timestamp = mTimestamp;
 
-//        if(mStartLogger) {
-//            String line = "";
-//
-//            try {
-//                if((line = breader.readLine()) != null) {
-//                    String[] row = line.split(",");
-//                    timestamp   = Float.parseFloat(row[2]);
-//                    x           = Float.parseFloat(row[4]);
-//                    y           = Float.parseFloat(row[5]);
-//                    z           = Float.parseFloat(row[6]);
-//
-//                }
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-//        }
+        if(mStartLogger && isDebuggerOn) {
+            String line = "";
+            try {
+                if((line = mReader.readLine()) != null) {
+                    String[] row = line.split(",");
+                    timestamp   = Float.parseFloat(row[2]);
+                    x           = Float.parseFloat(row[4]);
+                    y           = Float.parseFloat(row[5]);
+                    z           = Float.parseFloat(row[6]);
+
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
 
         if(mStartLogger) {
              x /= AppSettings.GRAVITY_CONSTANT;
              y /= AppSettings.GRAVITY_CONSTANT;
              z /= AppSettings.GRAVITY_CONSTANT;
 
-            switch (selectedAlgorithm) {
+            switch (mSelectedAlgorithm) {
                 case EnumAlgorithm.Z_THRESH_ALGORITHM:
                     doZThreshAlgorithm(z);
                     break;
@@ -157,15 +168,15 @@ public class FinderActivity extends BaseSensorActivity {
 
 
     private void doZThreshAlgorithm(float z) {
-        finder.handleState(z);
-        if(finder.isThereAPothole()){
+        mFinder.handleState(z);
+        if(mFinder.isThereAPothole()){
             Log.d(LOG_TAG, "I Pothole was found!");
             sendToast("I Pothole was found!");
         }
     }
 
     private void doRobsAlgorithm(float timestamp, float x, float z) {
-        dataframe.addRow(new AccData(x, 0, z, timestamp));
+        mDataFrame.addRow(new AccData(x, 0, z, timestamp));
         ctime = timestamp;
 //        Log.d(LOG_TAG, String.format("stime: %.4f| ctime: %.4f", stime, ctime));
 
@@ -174,8 +185,8 @@ public class FinderActivity extends BaseSensorActivity {
         }
 
         if((ctime - stime) >= smWinSize) {
-            PotholeDataFrame win    = dataframe.query(ctime - winSize, ctime - smWinSize);
-            PotholeDataFrame smWin  = dataframe.query(ctime - smWinSize, ctime);
+            PotholeDataFrame win    = mDataFrame.query(ctime - winSize, ctime - smWinSize);
+            PotholeDataFrame smWin  = mDataFrame.query(ctime - smWinSize, ctime);
 
             float wmean = (float) win.computeMean();
             float wstd = (float) win.computeStd();
