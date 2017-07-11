@@ -12,13 +12,11 @@ import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import java.util.Locale;
-import java.util.concurrent.Callable;
 
 /**
  * Created by Max Medina on 2017-07-06.
@@ -35,12 +33,12 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     protected volatile float[] acc_values = new float[3];
     protected String mDeviceName = "";
     protected float mTimestamp = 0;
-    protected boolean startLogger = false;
-    protected long loggerStartTime = 0;
+    protected boolean mStartLogger = false;
+    protected long mLoggerStartTime = 0;
 
     // Sensor properties
     protected SensorManager mSensorManager;
-    protected Sensor mAccelerometer;
+    protected Sensor mAccelerometerSensor;
 
     // Frequency
     protected int fqCount = 0;
@@ -57,6 +55,7 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     protected TextView tvAxisX;
     protected TextView tvAxisY;
     protected TextView tvAxisZ;
+    protected TextView tvSpeed;
     protected ToggleButton btnLog;
 
     @Override
@@ -64,19 +63,26 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_sensor);
+        setupUIComponents();
+        setupSensors();
+        setupUpdateUIThread();
 
+        mDeviceName = Build.MANUFACTURER + " " + Build.MODEL;
+    }
+
+    private void setupUIComponents() {
         tvTimestamp = (TextView)findViewById(R.id.tv_timestamp);
+        tvSpeed = (TextView) findViewById(R.id.tv_speed);
         tvFrequency = (TextView)findViewById(R.id.tv_frequency);
         tvAxisX = (TextView)findViewById(R.id.tv_x_axis);
         tvAxisY = (TextView)findViewById(R.id.tv_y_axis);
         tvAxisZ = (TextView)findViewById(R.id.tv_z_axis);
-
         btnLog = (ToggleButton)findViewById(R.id.btn_log);
         btnLog.setOnClickListener(this);
+        tvSpeed.setText("");
+    }
 
-        mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-
+    private void setupUpdateUIThread() {
         mHandler = new Handler();
         mHandler.postDelayed(new Runnable() {
             @Override
@@ -86,15 +92,18 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
                 mHandler.postDelayed(mRunnable, UPDATE_UI_DELAY);
             }
         }, UPDATE_UI_DELAY);
+    }
 
-        mDeviceName = Build.MANUFACTURER + " " + Build.MODEL;
+    private void setupSensors() {
+        mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        mAccelerometerSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         resetSensorTimer();
-        mSensorManager.registerListener(this, mAccelerometer, SAMPLING_RATE);
+        mSensorManager.registerListener(this, mAccelerometerSensor, SAMPLING_RATE);
         mHandler.postDelayed(mRunnable, UPDATE_UI_DELAY);
     }
 
@@ -108,12 +117,11 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
 
     @Override
     public void onClick(View v) {
-        startLogger = !startLogger;
+        mStartLogger = !mStartLogger;
 
-        if(startLogger){
-            loggerStartTime = System.currentTimeMillis();
+        if(mStartLogger){
+            mLoggerStartTime = System.currentTimeMillis();
         } else {
-
             mTimestamp = 0;
         }
 
@@ -126,8 +134,8 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     public void onSensorChanged(SensorEvent event) {
         if (Sensor.TYPE_ACCELEROMETER == event.sensor.getType()) {
 
-            if(startLogger){
-                mTimestamp = (System.currentTimeMillis() - loggerStartTime) / 1000.0f;
+            if(mStartLogger){
+                mTimestamp = (System.currentTimeMillis() - mLoggerStartTime) / 1000.0f;
             }
 
             calculateFrequency();
@@ -155,6 +163,7 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
 
         tvFrequency.setText(String.format(Locale.US, "%.1f hz", fqHz));
         tvTimestamp.setText(String.format(Locale.US, "%.3f s", mTimestamp));
+//        tvSpeed.setText(String.format(Locale.US, "%.2f m/s", ""));
     }
 
     protected void calculateFrequency() {

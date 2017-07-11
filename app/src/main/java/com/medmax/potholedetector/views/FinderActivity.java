@@ -3,7 +3,6 @@ package com.medmax.potholedetector.views;
 import android.content.SharedPreferences;
 import android.hardware.SensorEvent;
 import android.os.Bundle;
-import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -17,9 +16,6 @@ import com.medmax.potholedetector.data.analyzer.PotholeFinder;
 import com.medmax.potholedetector.models.AccData;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 
 /**
@@ -114,7 +110,7 @@ public class FinderActivity extends BaseSensorActivity {
 
     @Override
     public void myOnClick(View v) {
-        if(startLogger) {
+        if(mStartLogger) {
             stime = 0;
         }
     }
@@ -126,7 +122,7 @@ public class FinderActivity extends BaseSensorActivity {
         float z = event.values[2];
         float timestamp = mTimestamp;
 
-//        if(startLogger) {
+//        if(mStartLogger) {
 //            String line = "";
 //
 //            try {
@@ -143,7 +139,7 @@ public class FinderActivity extends BaseSensorActivity {
 //            }
 //        }
 
-        if(startLogger) {
+        if(mStartLogger) {
              x /= AppSettings.GRAVITY_CONSTANT;
              y /= AppSettings.GRAVITY_CONSTANT;
              z /= AppSettings.GRAVITY_CONSTANT;
