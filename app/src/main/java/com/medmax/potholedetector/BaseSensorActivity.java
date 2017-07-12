@@ -149,8 +149,9 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
         btnLog.setChecked(false);
         mSensorManager.unregisterListener(this);
         mHandler.removeCallbacks(mRunnable);
-        stopLogging();
+        mStartLogger = false;
         mGPSManager.removeLocationUpdates();
+        stopLogging();
         super.onPause();
     }
 
