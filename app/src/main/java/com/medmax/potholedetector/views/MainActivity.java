@@ -24,6 +24,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     // UI Components
     Button btnLogger;
     Button btnFinder;
+    Button btnFinderEx;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -35,9 +36,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         btnLogger = (Button)findViewById(R.id.btn_logger);
         btnFinder = (Button)findViewById(R.id.btn_finder);
+        btnFinderEx = (Button)findViewById(R.id.btn_finder_ex);
 
         btnLogger.setOnClickListener(this);
         btnFinder.setOnClickListener(this);
+        btnFinderEx.setOnClickListener(this);
     }
 
     @Override
@@ -70,6 +73,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
             case R.id.btn_finder:
                 Log.d(LOG_TAG, "btn_finder");
                 intent = new Intent(MainActivity.this, FinderActivity.class);
+                break;
+
+            case R.id.btn_finder_ex:
+                Log.d(LOG_TAG, "btn_finder_ex");
+                intent = new Intent(MainActivity.this, FinderExActivity.class);
                 break;
 
             case R.id.btn_logger:

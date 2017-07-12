@@ -6,8 +6,10 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -16,13 +18,25 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
+import com.medmax.potholedetector.config.AppSettings;
+import com.medmax.potholedetector.services.GPSManager;
+import com.medmax.potholedetector.services.OnGPSUpdateListener;
+import com.medmax.potholedetector.threads.ThreadManager;
+import com.medmax.potholedetector.utilities.CSVHelper;
+import com.medmax.potholedetector.utilities.DateTimeHelper;
+import com.medmax.potholedetector.utilities.PotholeCSVContract;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.Locale;
+import java.util.concurrent.Callable;
 
 /**
  * Created by Max Medina on 2017-07-06.
  */
 
-public abstract class BaseSensorActivity extends Activity implements View.OnClickListener, SensorEventListener {
+public abstract class BaseSensorActivity extends Activity implements View.OnClickListener, SensorEventListener, OnGPSUpdateListener {
 
     // Constants
     public final static String LOG_TAG = BaseSensorActivity.class.getSimpleName();
@@ -33,8 +47,10 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     protected volatile float[] acc_values = new float[3];
     protected String mDeviceName = "";
     protected float mTimestamp = 0;
+    protected float mSpeed = 0;
     protected boolean mStartLogger = false;
     protected long mLoggerStartTime = 0;
+    private int mIdSeed = 0;
 
     // Sensor properties
     protected SensorManager mSensorManager;
@@ -58,16 +74,36 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     protected TextView tvSpeed;
     protected ToggleButton btnLog;
 
+    // GPS
+    GPSManager mGPSManager;
+
+    // Helpers
+    CSVHelper csvHelper;
+
+    // Multi threading
+    private ThreadManager mThreadManager;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        setContentView(R.layout.activity_sensor);
+        setUILayout();
         setupUIComponents();
         setupSensors();
         setupUpdateUIThread();
 
+        csvHelper = new CSVHelper();
+        mThreadManager = ThreadManager.getsInstance();
+
         mDeviceName = Build.MANUFACTURER + " " + Build.MODEL;
+
+        mGPSManager = new GPSManager(this);
+        mGPSManager.setOnGPSUpdateListener(this);
+
+    }
+
+    protected void setUILayout() {
+        setContentView(R.layout.activity_sensor);
     }
 
     private void setupUIComponents() {
@@ -79,7 +115,7 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
         tvAxisZ = (TextView)findViewById(R.id.tv_z_axis);
         btnLog = (ToggleButton)findViewById(R.id.btn_log);
         btnLog.setOnClickListener(this);
-        tvSpeed.setText("");
+//        tvSpeed.setText("");
     }
 
     private void setupUpdateUIThread() {
@@ -105,6 +141,7 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
         resetSensorTimer();
         mSensorManager.registerListener(this, mAccelerometerSensor, SAMPLING_RATE);
         mHandler.postDelayed(mRunnable, UPDATE_UI_DELAY);
+        mGPSManager.requestLocationUpdates();
     }
 
     @Override
@@ -112,6 +149,8 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
         btnLog.setChecked(false);
         mSensorManager.unregisterListener(this);
         mHandler.removeCallbacks(mRunnable);
+        stopLogging();
+        mGPSManager.removeLocationUpdates();
         super.onPause();
     }
 
@@ -123,6 +162,12 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
             mLoggerStartTime = System.currentTimeMillis();
         } else {
             mTimestamp = 0;
+        }
+
+        if (!csvHelper.isOpen()) {
+            initLogging();
+        } else {
+            stopLogging();
         }
 
         myOnClick(v);
@@ -141,6 +186,15 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
             calculateFrequency();
             System.arraycopy(event.values, 0, acc_values, 0, event.values.length);
 
+            if (csvHelper.isOpen()) {
+                mThreadManager.addCallable(new Callable() {
+                    @Override
+                    public Object call() throws Exception {
+                        logChanges(mTimestamp);
+                        return null;
+                    }
+                });
+            }
             myOnSensorChanged(event);
         }
     }
@@ -162,8 +216,8 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
         tvAxisZ.setText(String.format(Locale.US, "z: %.4f", acc_values[2]));
 
         tvFrequency.setText(String.format(Locale.US, "%.1f hz", fqHz));
-        tvTimestamp.setText(String.format(Locale.US, "%.3f s", mTimestamp));
-//        tvSpeed.setText(String.format(Locale.US, "%.2f m/s", ""));
+        tvTimestamp.setText(String.format(Locale.US, "timestamp: %.3f s", mTimestamp));
+        tvSpeed.setText(String.format(Locale.US, "speed: %.2f m/s", mSpeed));
     }
 
     protected void calculateFrequency() {
@@ -185,5 +239,71 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     protected void sendToast(String message) {
         Toast toast = Toast.makeText(this, message, Toast.LENGTH_SHORT);
         toast.show();
+    }
+
+    private void initLogging() {
+        mIdSeed = 0;
+        String fileName = String.format("%s_%s.%s",
+                AppSettings.POTHOLE_FILENAME,
+                DateTimeHelper.getCurrentDateTime("yyyy-MM-dd hh-mm-ss"),
+                AppSettings.CSV_EXTENSION_NAME
+        );
+
+        File exportDir = new File(Environment.getExternalStorageDirectory(), AppSettings.POTHOLE_DIRECTORY);
+        try {
+            csvHelper.open(exportDir, fileName, true);
+            // TODO: Remove logger
+            Log.d(LOG_TAG, "Start Logger");
+        } catch (FileNotFoundException e) {
+            sendToast("File was not found!");
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void stopLogging() {
+        mTimestamp = 0;
+        if (csvHelper.isOpen()) {
+            try {
+                sendToast(String.format("file %s was created", csvHelper.getcurrentFileName()));
+                csvHelper.close();
+                // TODO: Remove logger
+                Log.d(LOG_TAG, "Stop Logger");
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private synchronized void logChanges(float timestamp) throws IOException {
+        // check again to see if the file is still open
+        if (csvHelper.isOpen()) {
+            if (mIdSeed == 0) {
+                csvHelper.setHeader(PotholeCSVContract.PotholeCSV.getHeaders());
+            }
+
+            csvHelper.write(String.format(
+                    Locale.US,
+                    "%d,%s,%s,%.06f,%.6f,%.6f,%.6f",
+                    ++mIdSeed,
+                    DateTimeHelper.getCurrentDateTime("yyyy-MM-dd hh:mm:ss.SSS"),
+                    mDeviceName,
+                    timestamp,
+                    acc_values[0],
+                    acc_values[1],
+                    acc_values[2])
+            );
+        }
+    }
+
+    @Override
+    public void onGPSUpdate(Location location) {
+        if(location.hasSpeed()) {
+            mSpeed = (float) (location.getSpeed() * 3.6);
+        }
+
+        Log.d(LOG_TAG, String.format("Speed: %.4f", mSpeed));
     }
 }

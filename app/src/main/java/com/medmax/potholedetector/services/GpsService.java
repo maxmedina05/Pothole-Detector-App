@@ -1,13 +1,9 @@
 package com.medmax.potholedetector.services;
 
 import android.app.Service;
-import android.content.Context;
 import android.content.Intent;
-import android.location.GpsStatus;
 import android.location.Location;
-import android.location.LocationListener;
 import android.location.LocationManager;
-import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
@@ -21,7 +17,7 @@ public class GpsService extends Service {
 
     public static final int GPS_UPDATE_DELAY = 2000;
     private static final String LOG_TAG = GpsService.class.getSimpleName();
-    private static OnGpsUpdateListener mListener;
+    private static OnGPSUpdateListener mListener;
     private LocationManager mLocationManager;
     private Location lastLocation;
 
@@ -59,7 +55,7 @@ public class GpsService extends Service {
         }, GPS_UPDATE_DELAY);
     }
 
-    public void setOnGpsUpdateListener(OnGpsUpdateListener listener) {
+    public void setOnGpsUpdateListener(OnGPSUpdateListener listener) {
         mListener = listener;
     }
 

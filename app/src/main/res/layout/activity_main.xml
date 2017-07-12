@@ -28,4 +28,12 @@
         android:layout_gravity="center_horizontal"
         android:layout_marginTop="32dp"
         android:text="Finder"/>
+
+    <Button
+        android:id="@+id/btn_finder_ex"
+        android:layout_width="160dp"
+        android:layout_height="64dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="32dp"
+        android:text="Finder EX"/>
 </LinearLayout>
