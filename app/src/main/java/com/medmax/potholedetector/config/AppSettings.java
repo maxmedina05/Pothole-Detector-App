@@ -1,11 +1,12 @@
 package com.medmax.potholedetector.config;
 
 /**
- * Created by maxme on 2017-07-07.
+ * Created by Max Medina on 2017-07-07.
  */
 
 public class AppSettings {
-    public static final String POTHOLE_DIRECTORY = "pothole_exports";
+    public static final String LOGGER_DIRECTORY = "pothole_exports";
+    public static final String DEFECTS_DIRECTORY = "defects_exports";
     public static final String POTHOLE_FILENAME = "pothole_log";
     public static final float GRAVITY_CONSTANT = 9.80f;
 
@@ -13,4 +14,6 @@ public class AppSettings {
     public static final String POTHOLE_LOG_THREAD = "pothole_log_thread";
 
 
+    public static final String DEFECTS_FILENAME = "defects_export.csv";
 }
+

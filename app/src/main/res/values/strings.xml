@@ -14,6 +14,7 @@
     <string name="pref_k_value">pref_k_value</string>
     <string name="pref_window_size">pref_window_size</string>
     <string name="pref_small_window_size">pref_small_window_size</string>
+    <string name="pref_defect_seed">pref_defect_seed</string>
 
     <string-array name="pref_algorithm_list">
         <item>@string/z_thresh_algorithm</item>

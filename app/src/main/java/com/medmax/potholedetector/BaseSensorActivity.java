@@ -157,18 +157,20 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
 
     @Override
     public void onClick(View v) {
-        mStartLogger = !mStartLogger;
+        if(v.getId() == R.id.btn_log) {
+            mStartLogger = !mStartLogger;
 
-        if(mStartLogger){
-            mLoggerStartTime = System.currentTimeMillis();
-        } else {
-            mTimestamp = 0;
-        }
+            if(mStartLogger){
+                mLoggerStartTime = System.currentTimeMillis();
+            } else {
+                mTimestamp = 0;
+            }
 
-        if (!csvHelper.isOpen()) {
-            initLogging();
-        } else {
-            stopLogging();
+            if (!csvHelper.isOpen()) {
+                initLogging();
+            } else {
+                stopLogging();
+            }
         }
 
         myOnClick(v);
@@ -209,8 +211,7 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
 
     protected void updateUI() {
         // TODO: Remove log
-        Log.d(LOG_TAG, "update ui");
-        Log.d(LOG_TAG, String.format("x: %.4f, y: %.4f, z: %.4f", acc_values[0], acc_values[1], acc_values[2]));
+//        Log.d(LOG_TAG, String.format("x: %.4f, y: %.4f, z: %.4f", acc_values[0], acc_values[1], acc_values[2]));
 
         tvAxisX.setText(String.format(Locale.US, "x: %.4f", acc_values[0]));
         tvAxisY.setText(String.format(Locale.US, "y: %.4f", acc_values[1]));
@@ -235,6 +236,7 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
         fqcTime = 0;
         fqHz = 0;
         mTimestamp = 0;
+        mStartLogger = false;
     }
 
     protected void sendToast(String message) {
@@ -250,7 +252,7 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
                 AppSettings.CSV_EXTENSION_NAME
         );
 
-        File exportDir = new File(Environment.getExternalStorageDirectory(), AppSettings.POTHOLE_DIRECTORY);
+        File exportDir = new File(Environment.getExternalStorageDirectory(), AppSettings.LOGGER_DIRECTORY);
         try {
             csvHelper.open(exportDir, fileName, true);
             // TODO: Remove logger

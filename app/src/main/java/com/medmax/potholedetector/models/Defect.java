@@ -1,10 +1,15 @@
 package com.medmax.potholedetector.models;
 
+import java.util.Locale;
+
 /**
  * Created by Max Medina on 2017-07-11.
  */
 
 public class Defect {
+
+    private int Id = 0;
+
     // window stats
     private double xMean    = 0;
     private double yMean    = 0;
@@ -22,6 +27,23 @@ public class Defect {
     private double sm_zStd  = 0;
 
     private int classType = 0;
+
+    public Defect() {
+
+    }
+
+    public Defect(int id, int classType) {
+        Id = id;
+        this.classType = classType;
+    }
+
+    public int getId() {
+        return Id;
+    }
+
+    public void setId(int id) {
+        Id = id;
+    }
 
     public double getxMean() {
         return xMean;
@@ -127,8 +149,27 @@ public class Defect {
         this.classType = classType;
     }
 
+    public String getCSVPrint() {
+        return String.format(Locale.US, "%d,%f,%f,%f,%f,%f,%f,,%f,%f,%f,%f,%f,%f,%d",
+                Id,
+                xMean,
+                xStd,
+                yMean,
+                yStd,
+                zMean,
+                zStd,
+                sm_xMean,
+                sm_xStd,
+                sm_yMean,
+                sm_yStd,
+                sm_zMean,
+                sm_zStd,
+                classType
+                );
+    }
+
     public static class ClassType {
-        public static final int NOT_POTHOLE = 0;
+        public static final int NOTHING = 0;
         public static final int POTHOLE = 1;
         public static final int SPEEDBUMP = 2;
     }

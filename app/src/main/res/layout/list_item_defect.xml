@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="8dp">
+    <TextView
+        android:id="@+id/tv_item_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:paddingTop="10dp"
+        android:textSize="16sp"
+        android:text="Pothole #1"
+        />
+
+    <RadioGroup
+        android:id="@+id/radiogp_defect_class"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/tv_item_name"
+        android:orientation="horizontal"
+        >
+        <RadioButton
+            android:id="@+id/radio_nothing"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="true"
+            android:text="Nothing"/>
+        <RadioButton
+            android:id="@+id/radio_pothole"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Pothole"/>
+        <RadioButton
+            android:id="@+id/radio_speedbump"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Speedbump"/>
+    </RadioGroup>
+</RelativeLayout>
