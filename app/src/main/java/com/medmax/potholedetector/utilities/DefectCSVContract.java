@@ -26,18 +26,25 @@ public class DefectCSVContract {
         public static String[] getHeaders(){
             return new String[] {
                     "defect_id",
+
                     "x_mean",
                     "x_std",
                     "y_mean",
                     "y_std",
                     "z_mean",
                     "z_std",
+
                     "sm_x_mean",
                     "sm_x_std",
                     "sm_y_mean",
                     "sm_y_std",
                     "sm_z_mean",
-                    "sm_z_std"
+                    "sm_z_std",
+
+                    "start_time",
+                    "end_time",
+
+                    "class"
             };
         }
     }

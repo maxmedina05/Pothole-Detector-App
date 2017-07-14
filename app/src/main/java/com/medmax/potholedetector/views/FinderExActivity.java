@@ -46,13 +46,7 @@ public class FinderExActivity extends FinderActivity {
 
     private void setupUI() {
         mDefects = new ArrayList<Defect>();
-//        mDefects.add(new Defect(1, Defect.ClassType.NOTHING));
-//        mDefects.add(new Defect(2, Defect.ClassType.NOTHING));
-//        mDefects.add(new Defect(3, Defect.ClassType.NOTHING));
-//        mDefects.add(new Defect(4, Defect.ClassType.NOTHING));
-//        mDefects.add(new Defect(5, Defect.ClassType.NOTHING));
-//        mDefects.add(new Defect(6, Defect.ClassType.NOTHING));
-//        mDefects.add(new Defect(7, Defect.ClassType.NOTHING));
+
         mAdapter = new DefectAdapter(this, mDefects);
         mListView = (ListView)findViewById(R.id.list_view_defects);
         btnClearlist = (Button) findViewById(R.id.btn_clear);
@@ -80,7 +74,9 @@ public class FinderExActivity extends FinderActivity {
         File exportDir = new File(Environment.getExternalStorageDirectory(), AppSettings.DEFECTS_DIRECTORY);
         try {
             helper.open(exportDir, fileName, true);
-            helper.setHeader(DefectCSVContract.DefectCSV.getHeaders());
+            if(defectSeed == 0) {
+                helper.setHeader(DefectCSVContract.DefectCSV.getHeaders());
+            }
 
             for (Defect defect : defects) {
                 helper.write(defect.getCSVPrint());

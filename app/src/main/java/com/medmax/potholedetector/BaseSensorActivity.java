@@ -51,6 +51,7 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     protected boolean mStartLogger = false;
     protected long mLoggerStartTime = 0;
     private int mIdSeed = 0;
+    protected String defectFoundMsg = "";
 
     // Sensor properties
     private SensorManager mSensorManager;
@@ -86,6 +87,8 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        defectFoundMsg = getString(R.string.defect_found);
 
         setUILayout();
         setupUIComponents();

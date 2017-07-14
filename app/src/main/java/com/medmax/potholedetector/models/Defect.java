@@ -169,7 +169,7 @@ public class Defect {
     }
 
     public String getCSVPrint() {
-        return String.format(Locale.US, "%d,%f,%f,%f,%f,%f,%f,,%f,%f,%f,%f,%f,%f,%d",
+        return String.format(Locale.US, "%d,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%d",
                 Id,
                 xMean,
                 xStd,
@@ -183,6 +183,8 @@ public class Defect {
                 sm_yStd,
                 sm_zMean,
                 sm_zStd,
+                startTime,
+                endTime,
                 classType
                 );
     }

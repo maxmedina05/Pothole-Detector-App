@@ -28,14 +28,14 @@
             android:checked="true"
             android:text="Nothing"/>
         <RadioButton
-            android:id="@+id/radio_pothole"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Pothole"/>
-        <RadioButton
             android:id="@+id/radio_speedbump"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Speedbump"/>
+        <RadioButton
+            android:id="@+id/radio_pothole"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Pothole"/>
     </RadioGroup>
 </RelativeLayout>

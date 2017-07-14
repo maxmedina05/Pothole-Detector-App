@@ -52,6 +52,20 @@
             android:selectAllOnFocus="true"
             android:singleLine="true"
             android:inputType="numberDecimal"
-            android:title="STD Thresh"/>
+            android:title="STD Z Thresh"/>
+
+        <EditTextPreference
+            android:defaultValue="0.10"
+            android:key="@string/pref_x_std_thresh"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:inputType="numberDecimal"
+            android:title="STD X Thresh"/>
+
+        <CheckBoxPreference
+            android:key="@string/pref_debugger_mode"
+            android:title="Debugger Mode"
+            android:summary="read accelerometer data from Downloads/mock-dataset.csv"
+            android:defaultValue="false" />
     </PreferenceCategory>
 </PreferenceScreen>

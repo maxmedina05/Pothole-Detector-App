@@ -15,6 +15,8 @@ import com.medmax.potholedetector.config.AppSettings;
 import com.medmax.potholedetector.data.analyzer.PotholeDataFrame;
 import com.medmax.potholedetector.data.analyzer.PotholeFinder;
 import com.medmax.potholedetector.models.AccData;
+import com.medmax.potholedetector.models.Defect;
+import com.medmax.potholedetector.utilities.MathHelper;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -35,23 +37,23 @@ public class FinderActivity extends BaseSensorActivity {
     private int mSelectedAlgorithm = 100;
     private PotholeDataFrame mDataFrame;
 
+    private boolean defectFound = false;
     private float stime = 0;
     private float ctime = 0;
 
     // Preferences
-    float winSize = 0.5f;
+    float winSize = 1.0f;
     float smWinSize = 0.1f;
     float K = 3.0f;
-    float std_thresh = 0.19f;
+    float z_std_thresh = 0.19f;
+    float x_std_thresh = 0.10f;
 
     // Debugger fields
     private BufferedReader mReader;
-    private boolean isDebuggerOn = true;
+    private boolean isDebuggerOn = false;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-
         mFinder = new PotholeFinder();
         mDataFrame = new PotholeDataFrame();
 
@@ -64,13 +66,14 @@ public class FinderActivity extends BaseSensorActivity {
         key = getResources().getString(R.string.pref_algorithm_list_key);
         mSelectedAlgorithm = Integer.parseInt(sharedPrefs.getString(key, "100"));
 
-        loadRobsAlgorithmParameters(sharedPrefs);
+        loadPrefParameters(sharedPrefs);
 
         // TODO: Remove log
         Log.d(LOG_TAG, String.format("Selected Algorithm: %d", mSelectedAlgorithm));
+        super.onCreate(savedInstanceState);
     }
 
-    private void loadRobsAlgorithmParameters(SharedPreferences sharedPrefs) {
+    private void loadPrefParameters(SharedPreferences sharedPrefs) {
         String key;
         key = getResources().getString(R.string.pref_window_size);
         winSize = Float.parseFloat(sharedPrefs.getString(key, "1"));
@@ -82,7 +85,16 @@ public class FinderActivity extends BaseSensorActivity {
         K = Integer.parseInt(sharedPrefs.getString(key, "3"));
 
         key = getResources().getString(R.string.pref_std_thresh);
-        std_thresh = Float.parseFloat(sharedPrefs.getString(key, "0.19"));
+        z_std_thresh = Float.parseFloat(sharedPrefs.getString(key, "0.19"));
+
+        key = getResources().getString(R.string.pref_x_std_thresh);
+        x_std_thresh = Float.parseFloat(sharedPrefs.getString(key, "0.10"));
+
+        key = getResources().getString(R.string.pref_debugger_mode);
+        isDebuggerOn = sharedPrefs.getBoolean(key, false);
+
+        Log.d(LOG_TAG, String.format("Z STD: %f", z_std_thresh));
+        Log.d(LOG_TAG, String.format("X STD: %f", x_std_thresh));
     }
 
     @Override
@@ -96,7 +108,7 @@ public class FinderActivity extends BaseSensorActivity {
 
     private void loadDataFromCSV() {
         File downloadsDir = new File(Environment.getExternalStorageDirectory(), "Download");
-        File file = new File(downloadsDir, "dataset_jeepeta.csv");
+        File file = new File(downloadsDir, "mock-dataset.csv");
         try {
             mReader = new BufferedReader(new FileReader(file));
             mReader.readLine();
@@ -139,7 +151,7 @@ public class FinderActivity extends BaseSensorActivity {
             try {
                 if((line = mReader.readLine()) != null) {
                     String[] row = line.split(",");
-                    timestamp   = Float.parseFloat(row[2]);
+                    timestamp   = Float.parseFloat(row[3]);
                     x           = Float.parseFloat(row[4]);
                     y           = Float.parseFloat(row[5]);
                     z           = Float.parseFloat(row[6]);
@@ -160,25 +172,26 @@ public class FinderActivity extends BaseSensorActivity {
                     doZThreshAlgorithm(z);
                     break;
                 case EnumAlgorithm.ROBS_ALGORITHM:
-                    doRobsAlgorithm(timestamp, x, z);
+                    doRobsAlgorithm(timestamp, x, y, z);
+                    break;
+                case EnumAlgorithm.STDX_ALGORITHM:
+                    doStdXAlgorithm(timestamp, x, y, z);
                     break;
             }
         }
     }
 
-
     private void doZThreshAlgorithm(float z) {
         mFinder.handleState(z);
         if(mFinder.isThereAPothole()){
-            Log.d(LOG_TAG, "I Pothole was found!");
-            sendToast("I Pothole was found!");
+            Log.d(LOG_TAG, defectFoundMsg);
+            sendToast(defectFoundMsg);
         }
     }
 
-    private void doRobsAlgorithm(float timestamp, float x, float z) {
-        mDataFrame.addRow(new AccData(x, 0, z, timestamp));
+    private void doRobsAlgorithm(float timestamp, float x, float y, float z) {
+        mDataFrame.addRow(new AccData(x, y, z, timestamp));
         ctime = timestamp;
-//        Log.d(LOG_TAG, String.format("stime: %.4f| ctime: %.4f", stime, ctime));
 
         if(ctime <= winSize){
             return;
@@ -195,7 +208,64 @@ public class FinderActivity extends BaseSensorActivity {
             float smw_max = (float) smWin.computeMax();
             float smw_std = (float) smWin.computeStd();
 
-            if(smw_max > wceil && smw_std > std_thresh) {
+            if(smw_max > wceil && smw_std > z_std_thresh) {
+                onDefectFound(win, smWin, stime, ctime);
+            }
+
+            stime = ctime;
+        }
+    }
+
+    private void doStdXAlgorithm(float timestamp, float x, float y, float z) {
+        mDataFrame.addRow(new AccData(x, y, z, timestamp));
+        ctime = timestamp;
+        float deltaTime = ctime - stime;
+
+        // Do cooldown delay
+        if(defectFound) {
+            if(deltaTime <= AppSettings.COOLDOWN_TIME) {
+                return;
+            } else {
+                defectFound = false;
+                stime = ctime;
+            }
+        }
+
+        // don't start working until it has enough data
+        if(ctime <= winSize){
+            return;
+        }
+
+        if(deltaTime >= smWinSize) {
+            PotholeDataFrame oneWin = mDataFrame.query(ctime-winSize, ctime);
+            PotholeDataFrame win    = oneWin.query(ctime - winSize, ctime - smWinSize);
+            PotholeDataFrame smWin  = oneWin.query(ctime - smWinSize, ctime);
+
+            float one_x_mean = (float) oneWin.computeMean(Defect.Axis.AXIS_X);
+            float one_x_std = (float) oneWin.computeStd(Defect.Axis.AXIS_X, one_x_mean);
+
+            float sm_z_mean = (float) smWin.computeMean(Defect.Axis.AXIS_Z);
+            float sm_z_std = (float) smWin.computeStd(Defect.Axis.AXIS_Z, sm_z_mean);
+
+            one_x_std = (float) MathHelper.round(one_x_std, AppSettings.TRAILING_ZEROS);
+            sm_z_std = (float) MathHelper.round(sm_z_std, AppSettings.TRAILING_ZEROS);
+
+            if(one_x_std < x_std_thresh && sm_z_std < z_std_thresh) {
+                stime = ctime;
+                return;
+            }
+
+            float mean = (float) win.computeMean(Defect.Axis.AXIS_Z);
+            float std = (float) win.computeStd(Defect.Axis.AXIS_Z, mean);
+            // dynamic thresh
+            float thresh = mean + (K*std);
+            float z_max = (float) smWin.computeMax();
+
+            thresh = (float) MathHelper.round(thresh, AppSettings.TRAILING_ZEROS);
+            z_max = (float) MathHelper.round(z_max, AppSettings.TRAILING_ZEROS);
+
+            if(z_max >= thresh) {
+                defectFound = true;
                 onDefectFound(win, smWin, stime, ctime);
             }
 
@@ -205,11 +275,12 @@ public class FinderActivity extends BaseSensorActivity {
 
     protected void onDefectFound(PotholeDataFrame win, PotholeDataFrame smWin, float stime, float ctime) {
         Log.d(LOG_TAG, String.format("Something was found between ti: %.4f and tf: %.4f", stime, ctime));
-        sendToast("I Pothole was found!");
+        sendToast(defectFoundMsg);
     }
 
     private static class EnumAlgorithm {
         static final int Z_THRESH_ALGORITHM = 100;
         static final int ROBS_ALGORITHM = 200;
+        static final int STDX_ALGORITHM = 250;
     }
 }
