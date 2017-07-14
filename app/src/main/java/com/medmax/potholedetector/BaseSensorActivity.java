@@ -45,7 +45,7 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
 
     // Variables
     protected volatile float[] acc_values = new float[3];
-    protected String mDeviceName = "";
+    private String mDeviceName = "";
     protected float mTimestamp = 0;
     protected float mSpeed = 0;
     protected boolean mStartLogger = false;
@@ -53,17 +53,17 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     private int mIdSeed = 0;
 
     // Sensor properties
-    protected SensorManager mSensorManager;
-    protected Sensor mAccelerometerSensor;
+    private SensorManager mSensorManager;
+    private Sensor mAccelerometerSensor;
 
     // Frequency
-    protected int fqCount = 0;
-    protected float fqsTime = 0;
-    protected float fqcTime = 0;
+    private int fqCount = 0;
+    private float fqsTime = 0;
+    private float fqcTime = 0;
     protected float fqHz = 0;
 
-    protected Handler mHandler;
-    protected Runnable mRunnable;
+    private Handler mHandler;
+    private Runnable mRunnable;
 
     // UI Components
     protected TextView tvTimestamp;
@@ -75,10 +75,10 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     protected ToggleButton btnLog;
 
     // GPS
-    GPSManager mGPSManager;
+    private GPSManager mGPSManager;
 
     // Helpers
-    CSVHelper csvHelper;
+    private CSVHelper csvHelper;
 
     // Multi threading
     private ThreadManager mThreadManager;

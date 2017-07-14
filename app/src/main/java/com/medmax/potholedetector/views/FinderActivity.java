@@ -45,8 +45,8 @@ public class FinderActivity extends BaseSensorActivity {
     float std_thresh = 0.19f;
 
     // Debugger fields
-    BufferedReader mReader;
-    private boolean isDebuggerOn = false;
+    private BufferedReader mReader;
+    private boolean isDebuggerOn = true;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -196,14 +196,17 @@ public class FinderActivity extends BaseSensorActivity {
             float smw_std = (float) smWin.computeStd();
 
             if(smw_max > wceil && smw_std > std_thresh) {
-                Log.d(LOG_TAG, String.format("Something was found between ti: %.4f and tf: %.4f", stime, ctime));
-                sendToast("I Pothole was found!");
+                onDefectFound(win, smWin, stime, ctime);
             }
 
             stime = ctime;
         }
     }
 
+    protected void onDefectFound(PotholeDataFrame win, PotholeDataFrame smWin, float stime, float ctime) {
+        Log.d(LOG_TAG, String.format("Something was found between ti: %.4f and tf: %.4f", stime, ctime));
+        sendToast("I Pothole was found!");
+    }
 
     private static class EnumAlgorithm {
         static final int Z_THRESH_ALGORITHM = 100;

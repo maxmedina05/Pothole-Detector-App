@@ -26,6 +26,9 @@ public class Defect {
     private double sm_yStd  = 0;
     private double sm_zStd  = 0;
 
+    private float startTime = 0;
+    private float endTime = 0;
+
     private int classType = 0;
 
     public Defect() {
@@ -149,6 +152,22 @@ public class Defect {
         this.classType = classType;
     }
 
+    public float getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(float startTime) {
+        this.startTime = startTime;
+    }
+
+    public float getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(float endTime) {
+        this.endTime = endTime;
+    }
+
     public String getCSVPrint() {
         return String.format(Locale.US, "%d,%f,%f,%f,%f,%f,%f,,%f,%f,%f,%f,%f,%f,%d",
                 Id,
@@ -172,5 +191,11 @@ public class Defect {
         public static final int NOTHING = 0;
         public static final int POTHOLE = 1;
         public static final int SPEEDBUMP = 2;
+    }
+
+    public static class Axis {
+        public static final int AXIS_X = 0;
+        public static final int AXIS_Y = 1;
+        public static final int AXIS_Z = 2;
     }
 }

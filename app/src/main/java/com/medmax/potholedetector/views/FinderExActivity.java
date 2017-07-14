@@ -3,6 +3,7 @@ package com.medmax.potholedetector.views;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.hardware.SensorEvent;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.Nullable;
@@ -10,9 +11,9 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ListView;
 
-import com.medmax.potholedetector.BaseSensorActivity;
 import com.medmax.potholedetector.R;
 import com.medmax.potholedetector.config.AppSettings;
+import com.medmax.potholedetector.data.analyzer.PotholeDataFrame;
 import com.medmax.potholedetector.models.Defect;
 import com.medmax.potholedetector.utilities.CSVHelper;
 import com.medmax.potholedetector.utilities.DefectCSVContract;
@@ -27,14 +28,14 @@ import java.util.List;
  * Created by Max Medina on 2017-07-11.
  */
 
-public class FinderExActivity extends BaseSensorActivity {
+public class FinderExActivity extends FinderActivity {
 
-    private int defectSeed = 0;
-
+    private volatile int defectSeed = 0;
+    private volatile List<Defect> mDefects;
     // UI Components
     private Button btnClearlist;
     private ListView mListView;
-
+    private DefectAdapter mAdapter;
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -44,29 +45,33 @@ public class FinderExActivity extends BaseSensorActivity {
     }
 
     private void setupUI() {
-        List<Defect> data = new ArrayList<Defect>();
-        data.add(new Defect(1, Defect.ClassType.NOTHING));
-        data.add(new Defect(2, Defect.ClassType.NOTHING));
-        data.add(new Defect(3, Defect.ClassType.NOTHING));
-        data.add(new Defect(4, Defect.ClassType.NOTHING));
-        data.add(new Defect(5, Defect.ClassType.NOTHING));
-        data.add(new Defect(6, Defect.ClassType.NOTHING));
-        data.add(new Defect(7, Defect.ClassType.NOTHING));
-
-        final DefectAdapter adapter = new DefectAdapter(this, data);
-
+        mDefects = new ArrayList<Defect>();
+//        mDefects.add(new Defect(1, Defect.ClassType.NOTHING));
+//        mDefects.add(new Defect(2, Defect.ClassType.NOTHING));
+//        mDefects.add(new Defect(3, Defect.ClassType.NOTHING));
+//        mDefects.add(new Defect(4, Defect.ClassType.NOTHING));
+//        mDefects.add(new Defect(5, Defect.ClassType.NOTHING));
+//        mDefects.add(new Defect(6, Defect.ClassType.NOTHING));
+//        mDefects.add(new Defect(7, Defect.ClassType.NOTHING));
+        mAdapter = new DefectAdapter(this, mDefects);
         mListView = (ListView)findViewById(R.id.list_view_defects);
         btnClearlist = (Button) findViewById(R.id.btn_clear);
-        mListView.setAdapter(adapter);
+        mListView.setAdapter(mAdapter);
 
         btnClearlist.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                saveDefectsToCSV(adapter.getItems());
-                adapter.clear();
-                adapter.notifyDataSetChanged();
+                saveDefectsToCSV(mAdapter.getItems());
+                mAdapter.clear();
+                mAdapter.notifyDataSetChanged();
             }
         });
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        writeDefectSeed(defectSeed);
     }
 
     private void saveDefectsToCSV(List<Defect> defects) {
@@ -79,7 +84,6 @@ public class FinderExActivity extends BaseSensorActivity {
 
             for (Defect defect : defects) {
                 helper.write(defect.getCSVPrint());
-
             }
 
         } catch (IOException e) {
@@ -113,12 +117,70 @@ public class FinderExActivity extends BaseSensorActivity {
 
     @Override
     public void myOnClick(View v) {
-
+        super.myOnClick(v);
     }
 
     @Override
     public void myOnSensorChanged(SensorEvent event) {
-
+        super.myOnSensorChanged(event);
     }
 
+    @Override
+    protected void onDefectFound(PotholeDataFrame win, PotholeDataFrame smWin, float stime, float ctime)  {
+        super.onDefectFound(win, smWin, stime, ctime);
+
+        new computeDefectStatistics(++defectSeed, stime, ctime).execute(win, smWin);
+    }
+
+    private class computeDefectStatistics extends AsyncTask<PotholeDataFrame, Integer, Defect> {
+
+        private int seed = 0;
+        private float startTime = 0;
+        private float endTime = 0;
+
+        public computeDefectStatistics(int defectSeed, float stime, float ctime) {
+            this.seed = defectSeed;
+            this.startTime = stime;
+            this.endTime = ctime;
+        }
+
+        @Override
+        protected Defect doInBackground(PotholeDataFrame... params) {
+            PotholeDataFrame win = params[0];
+            PotholeDataFrame smWin = params[1];
+
+            Defect defect = new Defect();
+            defect.setId(seed);
+            defect.setStartTime(startTime);
+            defect.setEndTime(endTime);
+
+            // Compute win Mean
+            defect.setxMean(win.computeMean(Defect.Axis.AXIS_X));
+            defect.setyMean(win.computeMean(Defect.Axis.AXIS_Y));
+            defect.setzMean(win.computeMean(Defect.Axis.AXIS_Z));
+
+            // Compute win std
+            defect.setxStd(win.computeStd(Defect.Axis.AXIS_X, defect.getxMean()));
+            defect.setyStd(win.computeStd(Defect.Axis.AXIS_Y, defect.getyMean()));
+            defect.setzStd(win.computeStd(Defect.Axis.AXIS_Z, defect.getzMean()));
+
+            // Compute small win Mean
+            defect.setSm_xMean(smWin.computeMean(Defect.Axis.AXIS_X));
+            defect.setSm_yMean(smWin.computeMean(Defect.Axis.AXIS_Y));
+            defect.setSm_zMean(smWin.computeMean(Defect.Axis.AXIS_Z));
+
+            // Compute small win std
+            defect.setSm_xStd(smWin.computeStd(Defect.Axis.AXIS_X, defect.getSm_xMean()));
+            defect.setSm_yStd(smWin.computeStd(Defect.Axis.AXIS_Y, defect.getSm_yMean()));
+            defect.setSm_zStd(smWin.computeStd(Defect.Axis.AXIS_Z, defect.getSm_zMean()));
+
+            return defect;
+        }
+
+        @Override
+        protected void onPostExecute(Defect defect) {
+            mDefects.add(defect);
+            mAdapter.notifyDataSetChanged();
+        }
+    }
 }

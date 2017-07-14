@@ -1,6 +1,7 @@
 package com.medmax.potholedetector.data.analyzer;
 
 import com.medmax.potholedetector.models.AccData;
+import com.medmax.potholedetector.models.Defect;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -61,6 +62,38 @@ public class PotholeDataFrame {
         return mean;
     }
 
+    public double computeMean(int axis){
+        double sum = 0;
+        double mean = 0;
+        double n = dataframe.size();
+
+        for (AccData row : dataframe) {
+            double x = getAxis(row, axis);
+            sum += x;
+        }
+        mMean = mean = sum / n;
+        isMeanCalculated = true;
+        return mean;
+    }
+
+    private double getAxis(AccData row, int axis) {
+        double value = 0;
+
+        switch (axis) {
+            case Defect.Axis.AXIS_X:
+                value = row.getxAxis();
+                break;
+            case Defect.Axis.AXIS_Y:
+                value = row.getyAxis();
+                break;
+            case Defect.Axis.AXIS_Z:
+                value = row.getzAxis();
+                break;
+        }
+
+        return value;
+    }
+
     public double computeStd(){
         double sum = 0;
         double std = 0;
@@ -70,6 +103,20 @@ public class PotholeDataFrame {
         for (AccData acd : dataframe) {
             double x = acd.getzAxis();
 
+            sum += (x - mean)*(x - mean);
+        }
+
+        std = Math.sqrt(sum / (n - 1));
+        return std;
+    }
+
+    public double computeStd(int axis, double mean){
+        double sum = 0;
+        double std = 0;
+        double n = dataframe.size();
+
+        for (AccData row : dataframe) {
+            double x = getAxis(row, axis);
             sum += (x - mean)*(x - mean);
         }
 
