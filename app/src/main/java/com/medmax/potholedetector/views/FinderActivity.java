@@ -1,16 +1,13 @@
 package com.medmax.potholedetector.views;
 
-import android.content.SharedPreferences;
 import android.hardware.SensorEvent;
 import android.os.Bundle;
 import android.os.Environment;
-import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.util.Log;
 import android.view.View;
 
 import com.medmax.potholedetector.BaseSensorActivity;
-import com.medmax.potholedetector.R;
 import com.medmax.potholedetector.config.AppSettings;
 import com.medmax.potholedetector.data.analyzer.PotholeDataFrame;
 import com.medmax.potholedetector.data.analyzer.PotholeFinder;
@@ -34,67 +31,23 @@ public class FinderActivity extends BaseSensorActivity {
 
     // Analyzer
     private PotholeFinder mFinder;
-    private int mSelectedAlgorithm = 100;
     private PotholeDataFrame mDataFrame;
 
     private boolean defectFound = false;
     private float stime = 0;
     private float ctime = 0;
 
-    // Preferences
-    float winSize = 1.0f;
-    float smWinSize = 0.1f;
-    float K = 3.0f;
-    float z_std_thresh = 0.19f;
-    float x_std_thresh = 0.10f;
-
     // Debugger fields
     private BufferedReader mReader;
-    private boolean isDebuggerOn = false;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
         mFinder = new PotholeFinder();
         mDataFrame = new PotholeDataFrame();
 
-        SharedPreferences sharedPrefs = PreferenceManager.getDefaultSharedPreferences(this);
-        String key = getResources().getString(R.string.pref_zthresh_key);
-
-        float ztreshv = Float.parseFloat(sharedPrefs.getString(key, "1.4"));
-        mFinder.setzThreshValue(ztreshv);
-
-        key = getResources().getString(R.string.pref_algorithm_list_key);
-        mSelectedAlgorithm = Integer.parseInt(sharedPrefs.getString(key, "100"));
-
-        loadPrefParameters(sharedPrefs);
-
-        // TODO: Remove log
-        Log.d(LOG_TAG, String.format("Selected Algorithm: %d", mSelectedAlgorithm));
-        super.onCreate(savedInstanceState);
-    }
-
-    private void loadPrefParameters(SharedPreferences sharedPrefs) {
-        String key;
-        key = getResources().getString(R.string.pref_window_size);
-        winSize = Float.parseFloat(sharedPrefs.getString(key, "1"));
-
-        key = getResources().getString(R.string.pref_small_window_size);
-        smWinSize = Float.parseFloat(sharedPrefs.getString(key, "0.1"));
-
-        key = getResources().getString(R.string.pref_k_value);
-        K = Integer.parseInt(sharedPrefs.getString(key, "3"));
-
-        key = getResources().getString(R.string.pref_std_thresh);
-        z_std_thresh = Float.parseFloat(sharedPrefs.getString(key, "0.19"));
-
-        key = getResources().getString(R.string.pref_x_std_thresh);
-        x_std_thresh = Float.parseFloat(sharedPrefs.getString(key, "0.10"));
-
-        key = getResources().getString(R.string.pref_debugger_mode);
-        isDebuggerOn = sharedPrefs.getBoolean(key, false);
-
-        Log.d(LOG_TAG, String.format("Z STD: %f", z_std_thresh));
-        Log.d(LOG_TAG, String.format("X STD: %f", x_std_thresh));
+        mFinder.setzThreshValue(z_thresh);
     }
 
     @Override
@@ -108,7 +61,7 @@ public class FinderActivity extends BaseSensorActivity {
 
     private void loadDataFromCSV() {
         File downloadsDir = new File(Environment.getExternalStorageDirectory(), "Download");
-        File file = new File(downloadsDir, "mock-dataset.csv");
+        File file = new File(downloadsDir, AppSettings.MOCK_DATA_FILENAME);
         try {
             mReader = new BufferedReader(new FileReader(file));
             mReader.readLine();
@@ -167,7 +120,7 @@ public class FinderActivity extends BaseSensorActivity {
              y /= AppSettings.GRAVITY_CONSTANT;
              z /= AppSettings.GRAVITY_CONSTANT;
 
-            switch (mSelectedAlgorithm) {
+            switch (selectedAlgorithm) {
                 case EnumAlgorithm.Z_THRESH_ALGORITHM:
                     doZThreshAlgorithm(z);
                     break;
@@ -209,7 +162,7 @@ public class FinderActivity extends BaseSensorActivity {
             float smw_std = (float) smWin.computeStd();
 
             if(smw_max > wceil && smw_std > z_std_thresh) {
-                onDefectFound(win, smWin, stime, ctime);
+                onDefectFound(win, win, smWin, stime, ctime, lastLongitude, lastLatitude);
             }
 
             stime = ctime;
@@ -221,9 +174,9 @@ public class FinderActivity extends BaseSensorActivity {
         ctime = timestamp;
         float deltaTime = ctime - stime;
 
-        // Do cooldown delay
+        // wait for cooldown delay
         if(defectFound) {
-            if(deltaTime <= AppSettings.COOLDOWN_TIME) {
+            if(deltaTime <= coolDownTime) {
                 return;
             } else {
                 defectFound = false;
@@ -250,7 +203,7 @@ public class FinderActivity extends BaseSensorActivity {
             one_x_std = (float) MathHelper.round(one_x_std, AppSettings.TRAILING_ZEROS);
             sm_z_std = (float) MathHelper.round(sm_z_std, AppSettings.TRAILING_ZEROS);
 
-            if(one_x_std < x_std_thresh && sm_z_std < z_std_thresh) {
+            if(one_x_std < x_std_thresh || sm_z_std < z_std_thresh) {
                 stime = ctime;
                 return;
             }
@@ -258,28 +211,24 @@ public class FinderActivity extends BaseSensorActivity {
             float mean = (float) win.computeMean(Defect.Axis.AXIS_Z);
             float std = (float) win.computeStd(Defect.Axis.AXIS_Z, mean);
             // dynamic thresh
-            float thresh = mean + (K*std);
-            float z_max = (float) smWin.computeMax();
-
-            thresh = (float) MathHelper.round(thresh, AppSettings.TRAILING_ZEROS);
-            z_max = (float) MathHelper.round(z_max, AppSettings.TRAILING_ZEROS);
+            float thresh = (float) MathHelper.round(mean + (K*std), AppSettings.TRAILING_ZEROS);
+            float z_max = (float) MathHelper.round(smWin.computeMax(), AppSettings.TRAILING_ZEROS);
 
             if(z_max >= thresh) {
                 defectFound = true;
-                onDefectFound(win, smWin, stime, ctime);
+                onDefectFound(oneWin, win, smWin, stime, ctime, lastLongitude, lastLatitude);
             }
-
             stime = ctime;
         }
     }
 
-    protected void onDefectFound(PotholeDataFrame win, PotholeDataFrame smWin, float stime, float ctime) {
-        Log.d(LOG_TAG, String.format("Something was found between ti: %.4f and tf: %.4f", stime, ctime));
+    protected void onDefectFound(PotholeDataFrame oneWin, PotholeDataFrame win, PotholeDataFrame smWin, float stime, float ctime, float longitude, float latitude) {
+        Log.d(LOG_TAG, String.format("A defect was found between ti: %.4f and tf: %.4f", stime, ctime));
         sendToast(defectFoundMsg);
     }
 
-    private static class EnumAlgorithm {
-        static final int Z_THRESH_ALGORITHM = 100;
+    public static class EnumAlgorithm {
+        public static final int Z_THRESH_ALGORITHM = 100;
         static final int ROBS_ALGORITHM = 200;
         static final int STDX_ALGORITHM = 250;
     }

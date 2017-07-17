@@ -18,6 +18,7 @@
     <string name="pref_defect_seed">pref_defect_seed</string>
     <string name="pref_debugger_mode">pref_debugger_mode</string>
     <string name="defect_found">A defect was found!</string>
+    <string name="pref_cooldown_time">pref_cooldown_time</string>
 
     <string-array name="pref_algorithm_list">
         <item>@string/z_thresh_algorithm</item>

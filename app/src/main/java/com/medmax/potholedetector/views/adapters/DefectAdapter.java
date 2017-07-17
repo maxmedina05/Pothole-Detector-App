@@ -3,12 +3,10 @@ package com.medmax.potholedetector.views.adapters;
 import android.content.Context;
 import android.support.annotation.IdRes;
 import android.support.annotation.NonNull;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 
@@ -37,7 +35,9 @@ public class DefectAdapter extends ArrayAdapter<Defect> {
                 return Defect.ClassType.POTHOLE;
 
             case R.id.radio_speedbump:
-                return Defect.ClassType.SPEEDBUMP;
+                return Defect.ClassType.SPEED_BUMP;
+            case R.id.radio_defect:
+                return Defect.ClassType.DEFECT;
             default:
                 return Defect.ClassType.NOTHING;
         }

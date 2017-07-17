@@ -54,8 +54,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_settings:
-                // TODO: Remove log
-                Log.d(LOG_TAG, "settings");
                 Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
                 startActivity(intent);
                 break;

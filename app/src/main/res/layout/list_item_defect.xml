@@ -31,11 +31,16 @@
             android:id="@+id/radio_speedbump"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Speedbump"/>
+            android:text="SBump"/>
+        <RadioButton
+            android:id="@+id/radio_defect"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Defect"/>
         <RadioButton
             android:id="@+id/radio_pothole"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Pothole"/>
+            android:text="PHole"/>
     </RadioGroup>
 </RelativeLayout>

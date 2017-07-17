@@ -45,7 +45,7 @@ public class ThreadManager {
         mTaskQueue = new LinkedBlockingQueue<Runnable>();
         mRunningTaskList = new ArrayList<>();
 
-        Log.e(LOG_TAG,"Available cores: " + NUMBER_OF_CORES);
+//        Log.e(LOG_TAG,"Available cores: " + NUMBER_OF_CORES);
         mExecutorService = new ThreadPoolExecutor(NUMBER_OF_CORES, NUMBER_OF_CORES*2, KEEP_ALIVE_TIME, KEEP_ALIVE_TIME_UNIT, mTaskQueue, new BackgroundThreadFactory());
     }
 
@@ -81,7 +81,7 @@ public class ThreadManager {
         @Override
         public Thread newThread(Runnable runnable) {
             Thread thread = new Thread(runnable);
-            thread.setName(AppSettings.POTHOLE_LOG_THREAD + sTag);
+            thread.setName(AppSettings.POTHOLE_LOG_THREAD + sTag++);
             thread.setPriority(Process.THREAD_PRIORITY_BACKGROUND);
 
             // A exception handler is created to log the exception from threads

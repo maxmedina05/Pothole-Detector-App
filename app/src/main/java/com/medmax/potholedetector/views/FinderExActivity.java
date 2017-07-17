@@ -7,6 +7,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.Nullable;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ListView;
@@ -55,7 +56,10 @@ public class FinderExActivity extends FinderActivity {
         btnClearlist.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                saveDefectsToCSV(mAdapter.getItems());
+//                saveDefectsToCSV(mAdapter.getItems());
+                if(!isDebuggerOn) {
+                    saveDefectsToCSV(mAdapter.getItems());
+                }
                 mAdapter.clear();
                 mAdapter.notifyDataSetChanged();
             }
@@ -72,14 +76,15 @@ public class FinderExActivity extends FinderActivity {
         CSVHelper helper = new CSVHelper();
         String fileName = AppSettings.DEFECTS_FILENAME;
         File exportDir = new File(Environment.getExternalStorageDirectory(), AppSettings.DEFECTS_DIRECTORY);
+
         try {
             helper.open(exportDir, fileName, true);
-            if(defectSeed == 0) {
+            if(helper.isOpen()) {
                 helper.setHeader(DefectCSVContract.DefectCSV.getHeaders());
-            }
 
-            for (Defect defect : defects) {
-                helper.write(defect.getCSVPrint());
+                for (Defect defect : defects) {
+                    helper.write(defect.getCSVPrint());
+                }
             }
 
         } catch (IOException e) {
@@ -100,10 +105,12 @@ public class FinderExActivity extends FinderActivity {
     }
 
     private void writeDefectSeed(int seed) {
-        SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPref.edit();
-        editor.putInt(getString(R.string.pref_defect_seed), seed);
-        editor.commit();
+        if(!isDebuggerOn) {
+            SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = sharedPref.edit();
+            editor.putInt(getString(R.string.pref_defect_seed), seed);
+            editor.commit();
+        }
     }
 
     @Override
@@ -112,20 +119,15 @@ public class FinderExActivity extends FinderActivity {
     }
 
     @Override
-    public void myOnClick(View v) {
-        super.myOnClick(v);
-    }
-
-    @Override
     public void myOnSensorChanged(SensorEvent event) {
         super.myOnSensorChanged(event);
     }
 
     @Override
-    protected void onDefectFound(PotholeDataFrame win, PotholeDataFrame smWin, float stime, float ctime)  {
-        super.onDefectFound(win, smWin, stime, ctime);
+    protected void onDefectFound(PotholeDataFrame oneWin, PotholeDataFrame win, PotholeDataFrame smWin, float stime, float ctime, float longitude, float latitude)  {
+        super.onDefectFound(oneWin, win, smWin, stime, ctime, longitude, latitude);
 
-        new computeDefectStatistics(++defectSeed, stime, ctime).execute(win, smWin);
+        new computeDefectStatistics(++defectSeed, stime, ctime, longitude, latitude).execute(oneWin, win, smWin);
     }
 
     private class computeDefectStatistics extends AsyncTask<PotholeDataFrame, Integer, Defect> {
@@ -133,24 +135,40 @@ public class FinderExActivity extends FinderActivity {
         private int seed = 0;
         private float startTime = 0;
         private float endTime = 0;
+        private float longitude = 0;
+        private float latitude = 0;
 
-        public computeDefectStatistics(int defectSeed, float stime, float ctime) {
+        private computeDefectStatistics(int defectSeed, float stime, float ctime, float longitude, float latitude) {
             this.seed = defectSeed;
             this.startTime = stime;
             this.endTime = ctime;
+            this.longitude = longitude;
+            this.latitude = latitude;
         }
 
         @Override
         protected Defect doInBackground(PotholeDataFrame... params) {
-            PotholeDataFrame win = params[0];
-            PotholeDataFrame smWin = params[1];
+            PotholeDataFrame oneWin = params[0];
+            PotholeDataFrame win = params[1];
+            PotholeDataFrame smWin = params[2];
 
             Defect defect = new Defect();
             defect.setId(seed);
             defect.setStartTime(startTime);
             defect.setEndTime(endTime);
+            defect.setLatitude(latitude);
+            defect.setLongitude(longitude);
 
-            // Compute win Mean
+            // Compute one win Mean
+            defect.setOnexMean(oneWin.computeMean(Defect.Axis.AXIS_X));
+            defect.setOneyMean(oneWin.computeMean(Defect.Axis.AXIS_Y));
+            defect.setOnezMean(oneWin.computeMean(Defect.Axis.AXIS_Z));
+            // Compute one win std
+            defect.setOnexStd(oneWin.computeStd(Defect.Axis.AXIS_X, defect.getOnexMean()));
+            defect.setOneyStd(oneWin.computeStd(Defect.Axis.AXIS_Y, defect.getOneyMean()));
+            defect.setOnezStd(oneWin.computeStd(Defect.Axis.AXIS_Z, defect.getOnezMean()));
+
+            // Compute win std
             defect.setxMean(win.computeMean(Defect.Axis.AXIS_X));
             defect.setyMean(win.computeMean(Defect.Axis.AXIS_Y));
             defect.setzMean(win.computeMean(Defect.Axis.AXIS_Z));
@@ -169,6 +187,8 @@ public class FinderExActivity extends FinderActivity {
             defect.setSm_xStd(smWin.computeStd(Defect.Axis.AXIS_X, defect.getSm_xMean()));
             defect.setSm_yStd(smWin.computeStd(Defect.Axis.AXIS_Y, defect.getSm_yMean()));
             defect.setSm_zStd(smWin.computeStd(Defect.Axis.AXIS_Z, defect.getSm_zMean()));
+
+            defect.setSm_zMax(smWin.computeMax());
 
             return defect;
         }

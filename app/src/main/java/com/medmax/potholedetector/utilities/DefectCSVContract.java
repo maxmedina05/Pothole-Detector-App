@@ -27,6 +27,13 @@ public class DefectCSVContract {
             return new String[] {
                     "defect_id",
 
+                    "one_x_mean",
+                    "one_x_std",
+                    "one_y_mean",
+                    "one_y_std",
+                    "one_z_mean",
+                    "one_z_std",
+
                     "x_mean",
                     "x_std",
                     "y_mean",
@@ -40,9 +47,13 @@ public class DefectCSVContract {
                     "sm_y_std",
                     "sm_z_mean",
                     "sm_z_std",
+                    "sm_z_max",
 
                     "start_time",
                     "end_time",
+
+                    "latitude",
+                    "longitude",
 
                     "class"
             };

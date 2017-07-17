@@ -20,6 +20,8 @@ public class CSVHelper {
     private BufferedWriter bwritter;
     private FileWriter fwritter;
     private boolean isOpen = false;
+    private boolean isEmpty = true;
+
     private File currentFile;
 
     public CSVHelper() {
@@ -101,7 +103,8 @@ public class CSVHelper {
         return isOpen;
     }
 
-    public String getcurrentFileName(){
+    public String getCurrentFileName(){
         return currentFile.getName();
     }
+
 }

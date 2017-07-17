@@ -8,8 +8,8 @@ import android.util.Log;
 
 public class PotholeFinder {
     private static final String LOG_TAG = PotholeFinder.class.getSimpleName();
-    public boolean currentState = false;
-    public boolean previousState = false;
+    private boolean currentState = false;
+    private boolean previousState = false;
     private float zThreshValue = 1.4f;
 
     public void setzThreshValue(float value) {
@@ -51,7 +51,7 @@ public class PotholeFinder {
         return (!currentState && previousState);
     }
 
-    public static String stateString(Boolean[] states){
+    private static String stateString(Boolean[] states){
         if(!states[0] && !states[1])
             return "Flujo Normal";
         if(states[0] && !states[1])

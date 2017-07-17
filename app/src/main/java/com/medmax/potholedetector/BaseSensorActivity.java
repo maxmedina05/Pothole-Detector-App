@@ -2,6 +2,7 @@ package com.medmax.potholedetector;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -11,8 +12,8 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
-import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -25,6 +26,7 @@ import com.medmax.potholedetector.threads.ThreadManager;
 import com.medmax.potholedetector.utilities.CSVHelper;
 import com.medmax.potholedetector.utilities.DateTimeHelper;
 import com.medmax.potholedetector.utilities.PotholeCSVContract;
+import com.medmax.potholedetector.views.FinderActivity;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -77,6 +79,8 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
 
     // GPS
     private GPSManager mGPSManager;
+    protected float lastLongitude = 0;
+    protected float lastLatitude = 0;
 
     // Helpers
     private CSVHelper csvHelper;
@@ -84,16 +88,29 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     // Multi threading
     private ThreadManager mThreadManager;
 
+    // Debugger
+    protected boolean isDebuggerOn = false;
+
+    // Preferences
+    protected float z_thresh = 1.4f;
+    protected float winSize = 1.0f;
+    protected float smWinSize = 0.1f;
+    protected float K = 3.0f;
+    protected float z_std_thresh = 0.19f;
+    protected float x_std_thresh = 0.10f;
+    protected float coolDownTime = AppSettings.COOLDOWN_TIME;
+    protected int selectedAlgorithm = FinderActivity.EnumAlgorithm.Z_THRESH_ALGORITHM;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         defectFoundMsg = getString(R.string.defect_found);
-
+        loadPrefParameters();
         setUILayout();
         setupUIComponents();
         setupSensors();
-        setupUpdateUIThread();
+        setupUIUpdateThread();
 
         csvHelper = new CSVHelper();
         mThreadManager = ThreadManager.getsInstance();
@@ -102,7 +119,36 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
 
         mGPSManager = new GPSManager(this);
         mGPSManager.setOnGPSUpdateListener(this);
+    }
 
+    private void loadPrefParameters() {
+        SharedPreferences sharedPrefs = PreferenceManager.getDefaultSharedPreferences(this);
+
+        String key = getResources().getString(R.string.pref_zthresh_key);
+        z_thresh = Float.parseFloat(sharedPrefs.getString(key, "1.4"));
+
+        key = getResources().getString(R.string.pref_algorithm_list_key);
+        selectedAlgorithm = Integer.parseInt(sharedPrefs.getString(key, "100"));
+        key = getResources().getString(R.string.pref_window_size);
+        winSize = Float.parseFloat(sharedPrefs.getString(key, "1"));
+
+        key = getResources().getString(R.string.pref_small_window_size);
+        smWinSize = Float.parseFloat(sharedPrefs.getString(key, "0.1"));
+
+        key = getResources().getString(R.string.pref_k_value);
+        K = Integer.parseInt(sharedPrefs.getString(key, "3"));
+
+        key = getResources().getString(R.string.pref_std_thresh);
+        z_std_thresh = Float.parseFloat(sharedPrefs.getString(key, "0.19"));
+
+        key = getResources().getString(R.string.pref_x_std_thresh);
+        x_std_thresh = Float.parseFloat(sharedPrefs.getString(key, "0.10"));
+
+        key = getResources().getString(R.string.pref_debugger_mode);
+        isDebuggerOn = sharedPrefs.getBoolean(key, false);
+
+        key = getResources().getString(R.string.pref_cooldown_time);
+        coolDownTime = Float.parseFloat(sharedPrefs.getString(key, String.valueOf(AppSettings.COOLDOWN_TIME)));
     }
 
     protected void setUILayout() {
@@ -110,18 +156,18 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     }
 
     private void setupUIComponents() {
-        tvTimestamp = (TextView)findViewById(R.id.tv_timestamp);
+        tvTimestamp = (TextView) findViewById(R.id.tv_timestamp);
         tvSpeed = (TextView) findViewById(R.id.tv_speed);
-        tvFrequency = (TextView)findViewById(R.id.tv_frequency);
-        tvAxisX = (TextView)findViewById(R.id.tv_x_axis);
-        tvAxisY = (TextView)findViewById(R.id.tv_y_axis);
-        tvAxisZ = (TextView)findViewById(R.id.tv_z_axis);
-        btnLog = (ToggleButton)findViewById(R.id.btn_log);
+        tvFrequency = (TextView) findViewById(R.id.tv_frequency);
+        tvAxisX = (TextView) findViewById(R.id.tv_x_axis);
+        tvAxisY = (TextView) findViewById(R.id.tv_y_axis);
+        tvAxisZ = (TextView) findViewById(R.id.tv_z_axis);
+        btnLog = (ToggleButton) findViewById(R.id.btn_log);
         btnLog.setOnClickListener(this);
 //        tvSpeed.setText("");
     }
 
-    private void setupUpdateUIThread() {
+    private void setupUIUpdateThread() {
         mHandler = new Handler();
         mHandler.postDelayed(new Runnable() {
             @Override
@@ -149,10 +195,10 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
 
     @Override
     protected void onPause() {
+        mStartLogger = false;
         btnLog.setChecked(false);
         mSensorManager.unregisterListener(this);
         mHandler.removeCallbacks(mRunnable);
-        mStartLogger = false;
         mGPSManager.removeLocationUpdates();
         stopLogging();
         super.onPause();
@@ -160,16 +206,10 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
 
     @Override
     public void onClick(View v) {
-        if(v.getId() == R.id.btn_log) {
+        if (v.getId() == R.id.btn_log) {
             mStartLogger = !mStartLogger;
 
-            if(mStartLogger){
-                mLoggerStartTime = System.currentTimeMillis();
-            } else {
-                mTimestamp = 0;
-            }
-
-            if (!csvHelper.isOpen()) {
+            if (mStartLogger) {
                 initLogging();
             } else {
                 stopLogging();
@@ -185,7 +225,7 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     public void onSensorChanged(SensorEvent event) {
         if (Sensor.TYPE_ACCELEROMETER == event.sensor.getType()) {
 
-            if(mStartLogger){
+            if (mStartLogger) {
                 mTimestamp = (System.currentTimeMillis() - mLoggerStartTime) / 1000.0f;
             }
 
@@ -213,9 +253,6 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     public abstract void myOnSensorChanged(SensorEvent event);
 
     protected void updateUI() {
-        // TODO: Remove log
-//        Log.d(LOG_TAG, String.format("x: %.4f, y: %.4f, z: %.4f", acc_values[0], acc_values[1], acc_values[2]));
-
         tvAxisX.setText(String.format(Locale.US, "x: %.4f", acc_values[0]));
         tvAxisY.setText(String.format(Locale.US, "y: %.4f", acc_values[1]));
         tvAxisZ.setText(String.format(Locale.US, "z: %.4f", acc_values[2]));
@@ -239,7 +276,6 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
         fqcTime = 0;
         fqHz = 0;
         mTimestamp = 0;
-        mStartLogger = false;
     }
 
     protected void sendToast(String message) {
@@ -248,34 +284,36 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     }
 
     private void initLogging() {
-        mIdSeed = 0;
-        String fileName = String.format("%s_%s.%s",
-                AppSettings.POTHOLE_FILENAME,
-                DateTimeHelper.getCurrentDateTime("yyyy-MM-dd hh-mm-ss"),
-                AppSettings.CSV_EXTENSION_NAME
-        );
+        mLoggerStartTime = System.currentTimeMillis();
 
-        File exportDir = new File(Environment.getExternalStorageDirectory(), AppSettings.LOGGER_DIRECTORY);
-        try {
-            csvHelper.open(exportDir, fileName, true);
-            // TODO: Remove logger
-            Log.d(LOG_TAG, "Start Logger");
-        } catch (FileNotFoundException e) {
-            sendToast("File was not found!");
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+        if(!isDebuggerOn) {
+            mIdSeed = 0;
+            String fileName = String.format("%s_%s.%s",
+                    AppSettings.POTHOLE_FILENAME,
+                    DateTimeHelper.getCurrentDateTime("yyyy-MM-dd hh-mm-ss"),
+                    AppSettings.CSV_EXTENSION_NAME
+            );
+
+            File exportDir = new File(Environment.getExternalStorageDirectory(), AppSettings.LOGGER_DIRECTORY);
+            try {
+                csvHelper.open(exportDir, fileName, true);
+            } catch (FileNotFoundException e) {
+                sendToast("File was not found!");
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
     private void stopLogging() {
+        mStartLogger = false;
         mTimestamp = 0;
-        if (csvHelper.isOpen()) {
+
+        if (!isDebuggerOn && csvHelper.isOpen()) {
             try {
-                sendToast(String.format("file %s was created", csvHelper.getcurrentFileName()));
+                sendToast(String.format("file %s was created", csvHelper.getCurrentFileName()));
                 csvHelper.close();
-                // TODO: Remove logger
-                Log.d(LOG_TAG, "Stop Logger");
 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -306,10 +344,11 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
 
     @Override
     public void onGPSUpdate(Location location) {
-        if(location.hasSpeed()) {
-            mSpeed = (float) (location.getSpeed() * 3.6);
+        if (location.hasSpeed()) {
+            mSpeed = location.getSpeed() * AppSettings.SPEED_CONSTANT;
         }
 
-        Log.d(LOG_TAG, String.format("Speed: %.4f", mSpeed));
+        lastLatitude = (float) location.getLatitude();
+        lastLongitude = (float) location.getLongitude();
     }
 }

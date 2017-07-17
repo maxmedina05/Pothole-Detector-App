@@ -17,6 +17,6 @@ public class AppSettings {
     public static final float COOLDOWN_TIME = 1.0f;
     public static final int TRAILING_ZEROS = 5;
 
-
+    public static final float SPEED_CONSTANT = 3.6f;
 }
 
