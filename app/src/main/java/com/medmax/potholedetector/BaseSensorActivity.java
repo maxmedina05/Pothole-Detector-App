@@ -44,9 +44,16 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     public final static String LOG_TAG = BaseSensorActivity.class.getSimpleName();
     protected static final int SAMPLING_RATE = SensorManager.SENSOR_DELAY_FASTEST;
     protected static final int UPDATE_UI_DELAY = 100;
+    final float alpha = 0.8f;
 
     // Variables
-    protected volatile float[] acc_values = new float[3];
+    protected volatile float[] accel = new float[3];
+    protected volatile float[] magnet = new float[3];
+    protected volatile float[] gravity = new float[3];
+    protected volatile float[] linear_acceleration = new float[3];
+    protected float[] rotationMatrix = new float[9];
+    protected float[] accMagOrientation = new float[3];
+
     private String mDeviceName = "";
     protected float mTimestamp = 0;
     protected float mSpeed = 0;
@@ -56,7 +63,7 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     protected String defectFoundMsg = "";
 
     // Sensor properties
-    private SensorManager mSensorManager;
+    protected SensorManager mSensorManager;
     private Sensor mAccelerometerSensor;
 
     // Frequency
@@ -189,6 +196,7 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
         super.onResume();
         resetSensorTimer();
         mSensorManager.registerListener(this, mAccelerometerSensor, SAMPLING_RATE);
+        mSensorManager.registerListener(this, mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD), SAMPLING_RATE);
         mHandler.postDelayed(mRunnable, UPDATE_UI_DELAY);
         mGPSManager.requestLocationUpdates();
     }
@@ -223,25 +231,43 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        if (Sensor.TYPE_ACCELEROMETER == event.sensor.getType()) {
 
-            if (mStartLogger) {
-                mTimestamp = (System.currentTimeMillis() - mLoggerStartTime) / 1000.0f;
-            }
+        switch (event.sensor.getType()) {
+            case Sensor.TYPE_ACCELEROMETER:
 
-            calculateFrequency();
-            System.arraycopy(event.values, 0, acc_values, 0, event.values.length);
+                if (mStartLogger) {
+                    mTimestamp = (System.currentTimeMillis() - mLoggerStartTime) / 1000.0f;
+                }
 
-            if (csvHelper.isOpen()) {
-                mThreadManager.addCallable(new Callable() {
-                    @Override
-                    public Object call() throws Exception {
-                        logChanges(mTimestamp);
-                        return null;
-                    }
-                });
-            }
-            myOnSensorChanged(event);
+                calculateFrequency();
+                System.arraycopy(event.values, 0, accel, 0, event.values.length);
+
+                {
+                    // Isolate the force of gravity with the low-pass filter.
+                    gravity[0] = alpha * gravity[0] + (1 - alpha) * event.values[0];
+                    gravity[1] = alpha * gravity[1] + (1 - alpha) * event.values[1];
+                    gravity[2] = alpha * gravity[2] + (1 - alpha) * event.values[2];
+
+                    // Remove the gravity contribution with the high-pass filter.
+                    linear_acceleration[0] = event.values[0] - gravity[0];
+                    linear_acceleration[1] = event.values[1] - gravity[1];
+                    linear_acceleration[2] = event.values[2] - gravity[2];
+                }
+
+                if (csvHelper.isOpen()) {
+                    mThreadManager.addCallable(new Callable() {
+                        @Override
+                        public Object call() throws Exception {
+                            logChanges(mTimestamp);
+                            return null;
+                        }
+                    });
+                }
+                myOnSensorChanged(event);
+                break;
+            case Sensor.TYPE_MAGNETIC_FIELD:
+                System.arraycopy(event.values, 0, magnet, 0, 3);
+                break;
         }
     }
 
@@ -253,9 +279,9 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     public abstract void myOnSensorChanged(SensorEvent event);
 
     protected void updateUI() {
-        tvAxisX.setText(String.format(Locale.US, "x: %.4f", acc_values[0]));
-        tvAxisY.setText(String.format(Locale.US, "y: %.4f", acc_values[1]));
-        tvAxisZ.setText(String.format(Locale.US, "z: %.4f", acc_values[2]));
+        tvAxisX.setText(String.format(Locale.US, "x: %.4f", accel[0]));
+        tvAxisY.setText(String.format(Locale.US, "y: %.4f", accel[1]));
+        tvAxisZ.setText(String.format(Locale.US, "z: %.4f", accel[2]));
 
         tvFrequency.setText(String.format(Locale.US, "%.1f hz", fqHz));
         tvTimestamp.setText(String.format(Locale.US, "timestamp: %.3f s", mTimestamp));
@@ -286,7 +312,7 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     private void initLogging() {
         mLoggerStartTime = System.currentTimeMillis();
 
-        if(!isDebuggerOn) {
+        if (!isDebuggerOn) {
             mIdSeed = 0;
             String fileName = String.format("%s_%s.%s",
                     AppSettings.POTHOLE_FILENAME,
@@ -335,9 +361,9 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
                     DateTimeHelper.getCurrentDateTime("yyyy-MM-dd hh:mm:ss.SSS"),
                     mDeviceName,
                     timestamp,
-                    acc_values[0],
-                    acc_values[1],
-                    acc_values[2])
+                    accel[0],
+                    accel[1],
+                    accel[2])
             );
         }
     }

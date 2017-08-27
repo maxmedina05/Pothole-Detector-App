@@ -2,8 +2,10 @@ package com.medmax.potholedetector.data.analyzer;
 
 import com.medmax.potholedetector.models.AccData;
 import com.medmax.potholedetector.models.Defect;
+import com.medmax.potholedetector.utilities.MathHelper;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -15,7 +17,7 @@ import java.util.List;
  */
 
 public class PotholeDataFrame {
-    public static final int MAX_TIME_RECORDED = 3;
+    public static final int MAX_TIME_RECORDED = 2;
     public static final int LAST_SECOND_TIME = 1;
     private List<AccData> dataframe;
     private List<AccData> lastdf;
@@ -26,11 +28,51 @@ public class PotholeDataFrame {
     public PotholeDataFrame() {
         dataframe = new ArrayList<>();
         lastdf = new ArrayList<>();
+
     }
+
 
     public PotholeDataFrame(List<AccData> dataframe) {
         this.dataframe = dataframe;
         lastdf = new ArrayList<>();
+    }
+
+    private static int binarySearch(List<AccData> arr, int l, int r, double x) {
+        if(r >= l) {
+            int mid = l + (r - l) / 2;
+            double timestamp = MathHelper.round(arr.get(mid).getTimestamp(), 4);
+
+            if(timestamp == x)
+                return mid;
+
+            if(timestamp > x)
+                return binarySearch(arr, l, mid-1, x);
+            return binarySearch(arr, mid+1, r, x);
+        }
+
+        return 0;
+    }
+
+    public PotholeDataFrame bsQuery(double begin, double end){
+        begin = MathHelper.round(begin, 4);
+        end = MathHelper.round(end, 4);
+
+        List<AccData> df = new ArrayList<>();
+        int start_idx = binarySearch(dataframe, 0, dataframe.size() - 1, begin);
+
+        for (int i = start_idx; i < dataframe.size(); i++) {
+            AccData row = dataframe.get(i);
+            double timestamp = MathHelper.round(row.getTimestamp(), 4);
+
+            if(timestamp >= begin && timestamp <= end) {
+                df.add(row);
+            }
+
+            if(timestamp >= end) {
+                break;
+            }
+        }
+        return new PotholeDataFrame(df);
     }
 
     public PotholeDataFrame query(double begin, double end){
@@ -39,6 +81,10 @@ public class PotholeDataFrame {
         for (AccData row : dataframe) {
             if(row.getTimestamp() >= begin && row.getTimestamp() <= end) {
                 df.add(row);
+            }
+
+            if(row.getTimestamp() >= end) {
+                break;
             }
         }
 

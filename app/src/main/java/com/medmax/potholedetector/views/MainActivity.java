@@ -25,6 +25,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     Button btnLogger;
     Button btnFinder;
     Button btnFinderEx;
+    Button btnVirtualOrientation;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -37,10 +38,12 @@ public class MainActivity extends Activity implements View.OnClickListener {
         btnLogger = (Button)findViewById(R.id.btn_logger);
         btnFinder = (Button)findViewById(R.id.btn_finder);
         btnFinderEx = (Button)findViewById(R.id.btn_finder_ex);
+        btnVirtualOrientation = (Button) findViewById(R.id.btn_virtual_orientation);
 
         btnLogger.setOnClickListener(this);
         btnFinder.setOnClickListener(this);
         btnFinderEx.setOnClickListener(this);
+        btnVirtualOrientation.setOnClickListener(this);
     }
 
     @Override
@@ -83,6 +86,10 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 intent = new Intent(MainActivity.this, LoggerActivity.class);
                 break;
 
+            case R.id.btn_virtual_orientation:
+                Log.d(LOG_TAG, "btn_virtual_orientation");
+                intent = new Intent(MainActivity.this, VirtualOrientationActivity.class);
+                break;
             default:
                 intent = new Intent(MainActivity.this, LoggerActivity.class);
                 break;

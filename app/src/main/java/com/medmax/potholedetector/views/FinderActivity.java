@@ -200,8 +200,8 @@ public class FinderActivity extends BaseSensorActivity {
             float sm_z_mean = (float) smWin.computeMean(Defect.Axis.AXIS_Z);
             float sm_z_std = (float) smWin.computeStd(Defect.Axis.AXIS_Z, sm_z_mean);
 
-            one_x_std = (float) MathHelper.round(one_x_std, AppSettings.TRAILING_ZEROS);
-            sm_z_std = (float) MathHelper.round(sm_z_std, AppSettings.TRAILING_ZEROS);
+            one_x_std = (float) MathHelper.round(one_x_std, AppSettings.NDIGITS);
+            sm_z_std = (float) MathHelper.round(sm_z_std, AppSettings.NDIGITS);
 
             if(one_x_std < x_std_thresh || sm_z_std < z_std_thresh) {
                 stime = ctime;
@@ -211,8 +211,8 @@ public class FinderActivity extends BaseSensorActivity {
             float mean = (float) win.computeMean(Defect.Axis.AXIS_Z);
             float std = (float) win.computeStd(Defect.Axis.AXIS_Z, mean);
             // dynamic thresh
-            float thresh = (float) MathHelper.round(mean + (K*std), AppSettings.TRAILING_ZEROS);
-            float z_max = (float) MathHelper.round(smWin.computeMax(), AppSettings.TRAILING_ZEROS);
+            float thresh = (float) MathHelper.round(mean + (K*std), AppSettings.NDIGITS);
+            float z_max = (float) MathHelper.round(smWin.computeMax(), AppSettings.NDIGITS);
 
             if(z_max >= thresh) {
                 defectFound = true;
