@@ -5,7 +5,7 @@ import com.medmax.potholedetector.models.Defect;
 import com.medmax.potholedetector.utilities.MathHelper;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -19,23 +19,30 @@ import java.util.List;
 public class PotholeDataFrame {
     public static final int MAX_TIME_RECORDED = 2;
     public static final int LAST_SECOND_TIME = 1;
-    private List<AccData> dataframe;
+    private List<AccData> mDataFrame;
     private List<AccData> lastdf;
     private double mStartTime = 0;
     private double mMean = 0;
     private boolean isMeanCalculated = false;
 
     public PotholeDataFrame() {
-        dataframe = new ArrayList<>();
+        mDataFrame = new ArrayList<>();
         lastdf = new ArrayList<>();
 
     }
 
-
-    public PotholeDataFrame(List<AccData> dataframe) {
-        this.dataframe = dataframe;
+    public PotholeDataFrame(List<AccData> mDataFrame) {
+        this.mDataFrame = mDataFrame;
         lastdf = new ArrayList<>();
     }
+
+    public PotholeDataFrame clone(){
+        PotholeDataFrame cloneX = new PotholeDataFrame();
+        cloneX.mDataFrame.addAll(this.mDataFrame);
+        cloneX.lastdf = new ArrayList<>();
+        return cloneX;
+    }
+
 
     private static int binarySearch(List<AccData> arr, int l, int r, double x) {
         if(r >= l) {
@@ -53,15 +60,16 @@ public class PotholeDataFrame {
         return 0;
     }
 
+    // Still in test
     public PotholeDataFrame bsQuery(double begin, double end){
         begin = MathHelper.round(begin, 4);
         end = MathHelper.round(end, 4);
 
         List<AccData> df = new ArrayList<>();
-        int start_idx = binarySearch(dataframe, 0, dataframe.size() - 1, begin);
+        int start_idx = binarySearch(mDataFrame, 0, mDataFrame.size() - 1, begin);
 
-        for (int i = start_idx; i < dataframe.size(); i++) {
-            AccData row = dataframe.get(i);
+        for (int i = start_idx; i < mDataFrame.size(); i++) {
+            AccData row = mDataFrame.get(i);
             double timestamp = MathHelper.round(row.getTimestamp(), 4);
 
             if(timestamp >= begin && timestamp <= end) {
@@ -78,15 +86,29 @@ public class PotholeDataFrame {
     public PotholeDataFrame query(double begin, double end){
         List<AccData> df = new ArrayList<>();
 
-        for (AccData row : dataframe) {
-            if(row.getTimestamp() >= begin && row.getTimestamp() <= end) {
-                df.add(row);
-            }
+        for (Iterator<AccData> it = mDataFrame.iterator(); it.hasNext(); ) {
+            if(it.hasNext()) {
+                AccData row = it.next();
+                if(row.getTimestamp() >= begin && row.getTimestamp() <= end) {
+                    df.add(row);
+                }
 
-            if(row.getTimestamp() >= end) {
+                if(row.getTimestamp() >= end) {
+                    break;
+                }
+            } else {
                 break;
             }
         }
+//            for (AccData row : mDataFrame) {
+//            if(row.getTimestamp() >= begin && row.getTimestamp() <= end) {
+//                df.add(row);
+//            }
+//
+//            if(row.getTimestamp() >= end) {
+//                break;
+//            }
+//            }
 
         return new PotholeDataFrame(df);
     }
@@ -98,9 +120,9 @@ public class PotholeDataFrame {
 
         double sum = 0;
         double mean = 0;
-        double n = dataframe.size();
+        double n = mDataFrame.size();
 
-        for (AccData x : dataframe) {
+        for (AccData x : mDataFrame) {
             sum += x.getzAxis();
         }
         mMean = mean = sum / n;
@@ -111,9 +133,9 @@ public class PotholeDataFrame {
     public double computeMean(int axis){
         double sum = 0;
         double mean = 0;
-        double n = dataframe.size();
+        double n = mDataFrame.size();
 
-        for (AccData row : dataframe) {
+        for (AccData row : mDataFrame) {
             double x = getAxis(row, axis);
             sum += x;
         }
@@ -144,9 +166,9 @@ public class PotholeDataFrame {
         double sum = 0;
         double std = 0;
         double mean = computeMean();
-        double n = dataframe.size();
+        double n = mDataFrame.size();
 
-        for (AccData acd : dataframe) {
+        for (AccData acd : mDataFrame) {
             double x = acd.getzAxis();
 
             sum += (x - mean)*(x - mean);
@@ -159,9 +181,9 @@ public class PotholeDataFrame {
     public double computeStd(int axis, double mean){
         double sum = 0;
         double std = 0;
-        double n = dataframe.size();
+        double n = mDataFrame.size();
 
-        for (AccData row : dataframe) {
+        for (AccData row : mDataFrame) {
             double x = getAxis(row, axis);
             sum += (x - mean)*(x - mean);
         }
@@ -171,9 +193,9 @@ public class PotholeDataFrame {
     }
 
     public double computeMax(){
-        double max = dataframe.get(0).getzAxis();
+        double max = mDataFrame.get(0).getzAxis();
 
-        for (AccData acd : dataframe) {
+        for (AccData acd : mDataFrame) {
             double x = acd.getzAxis();
             if(x > max) {
                 max = x;
@@ -190,16 +212,16 @@ public class PotholeDataFrame {
      * steps:
      *      1. check if it's empty if it is then that's the first record and set the start time.
      *      2. verify if 3 seconds has pass
-     *          if yes: reset the dataframe; dataframe = lastdf
+     *          if yes: reset the mDataFrame; mDataFrame = lastdf
      *          if no: check if 2 seconds has pass
      *              if yes: add to the lastdf
      */
     public void addRow(AccData row) {
-        dataframe.add(row);
+        mDataFrame.add(row);
         isMeanCalculated = false;
 
         double currentTime = row.getTimestamp();
-        if(dataframe.size() == 1) {
+        if(mDataFrame.size() == 1) {
             mStartTime = row.getTimestamp();
         }
 
@@ -210,9 +232,9 @@ public class PotholeDataFrame {
 
         // MAX_TIME_RECORDED REACHED!
         if((currentTime - mStartTime) >= MAX_TIME_RECORDED) {
-            dataframe.clear();
-            // dataframe.addAll(lastdf);
-            dataframe = lastdf;
+            mDataFrame.clear();
+            // mDataFrame.addAll(lastdf);
+            mDataFrame = lastdf;
             lastdf = new ArrayList<>();
 
             // reset time

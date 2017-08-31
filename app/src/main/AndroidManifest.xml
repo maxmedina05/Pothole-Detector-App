@@ -24,7 +24,8 @@
         <activity android:name=".views.LoggerActivity" android:screenOrientation="portrait"/>
         <activity android:name=".views.FinderActivity" android:screenOrientation="portrait"/>
         <activity android:name=".views.FinderExActivity" android:screenOrientation="portrait"/>
-        <activity android:name=".views.VirtualOrientationActivity" android:screenOrientation="portrait"/>
+        <activity android:name=".views.VirtualOLoggerActivity" android:screenOrientation="portrait"/>
+        <activity android:name=".views.VirtualOFinderActivity" android:screenOrientation="portrait"/>
         <activity android:name=".views.SettingsActivity"/>
 
     </application>
