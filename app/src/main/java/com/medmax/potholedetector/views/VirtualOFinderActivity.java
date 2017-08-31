@@ -96,7 +96,7 @@ public class VirtualOFinderActivity extends VirtualOLoggerActivity {
         }
     }
 
-    @Override
+//    @Override
     protected void onVirtualAccelChanged(float[] accel) {
 
         mDataFrame.addRow(new AccData(accel[0], accel[1], accel[2], accel[3]));

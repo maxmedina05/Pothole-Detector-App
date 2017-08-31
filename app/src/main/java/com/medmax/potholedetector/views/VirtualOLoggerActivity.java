@@ -122,7 +122,6 @@ public class VirtualOLoggerActivity extends Activity implements View.OnClickList
         fqCal.reset();
         mSensorManager.registerListener(this, mAccelerometerSensor, SAMPLING_RATE);
         mSensorManager.registerListener(this, mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD), SAMPLING_RATE);
-
         setupGraph();
     }
 
@@ -164,27 +163,28 @@ public class VirtualOLoggerActivity extends Activity implements View.OnClickList
 
     protected void onAccelerometerSensorChanged(float[] values) {
         fqCal.calculateFrequency();
-//        Log.d(LOG_TAG, String.format("VirtualLogger - X: %.4f | Y: %.4f | Z %.4f", values[0], values[1], values[2]));
         System.arraycopy(values, 0, mAccel, 0, values.length);
 
-        // Isolate the force of mGravity with the low-pass filter.
-        mGravity[0] = ALPHA * mGravity[0] + (1 - ALPHA) * values[0];
-        mGravity[1] = ALPHA * mGravity[1] + (1 - ALPHA) * values[1];
-        mGravity[2] = ALPHA * mGravity[2] + (1 - ALPHA) * values[2];
-
-        // Remove the mGravity contribution with the high-pass filter.
-        mLinearAcceleration[0] = values[0] - mGravity[0];
-        mLinearAcceleration[1] = values[1] - mGravity[1];
-        mLinearAcceleration[2] = values[2] - mGravity[2];
-
         if (isLogging) {
+            mTimestamp = (System.currentTimeMillis() - mLogStartTime) / 1000.0f;
+
+            // Isolate the force of mGravity with the low-pass filter.
+            mGravity[0] = ALPHA * mGravity[0] + (1 - ALPHA) * values[0];
+            mGravity[1] = ALPHA * mGravity[1] + (1 - ALPHA) * values[1];
+            mGravity[2] = ALPHA * mGravity[2] + (1 - ALPHA) * values[2];
+
+            // Remove the mGravity contribution with the high-pass filter.
+            mLinearAcceleration[0] = values[0] - mGravity[0];
+            mLinearAcceleration[1] = values[1] - mGravity[1];
+            mLinearAcceleration[2] = values[2] - mGravity[2];
+
             float[] rotationMatrix = new float[9];
+
             if(SensorManager.getRotationMatrix(rotationMatrix, null, values, mMagnet)){
-                mTimestamp = (System.currentTimeMillis() - mLogStartTime) / 1000.0f;
                 float[] vrm = computeAccelVirtualOrientation(rotationMatrix, mLinearAcceleration);
                 System.arraycopy(vrm, 0, virtualAccel, 0, vrm.length);
-//                new LogTask(++mIdSeed, mTimestamp, values, mLinearAcceleration, mMagnet, rotationMatrix).execute();
             }
+            new LogTask(++mIdSeed, mTimestamp, virtualAccel);
         }
     }
 
@@ -268,6 +268,28 @@ public class VirtualOLoggerActivity extends Activity implements View.OnClickList
         mAccelerometerSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
     }
 
+    private void setupGraph() {
+        seriesX = new LineGraphSeries<>();
+        seriesY = new LineGraphSeries<>();
+        seriesZ = new LineGraphSeries<>();
+
+        seriesX.setColor(Color.BLUE);
+        seriesY.setColor(Color.RED);
+        seriesZ.setColor(Color.GREEN);
+
+        mGraph.addSeries(seriesX);
+        mGraph.addSeries(seriesY);
+        mGraph.addSeries(seriesZ);
+
+        mGraph.getViewport().setXAxisBoundsManual(true);
+        mGraph.getViewport().setYAxisBoundsManual(true);
+        mGraph.getViewport().setMinX(0);
+        mGraph.getViewport().setMaxX(10);
+
+        mGraph.getViewport().setMinY(-2);
+        mGraph.getViewport().setMaxY(2);
+    }
+
     private void initLogger() {
         mLogStartTime = System.currentTimeMillis();
         mIdSeed = 0;
@@ -323,32 +345,6 @@ public class VirtualOLoggerActivity extends Activity implements View.OnClickList
         }
     }
 
-    private void setupGraph() {
-        seriesX = new LineGraphSeries<>();
-        seriesY = new LineGraphSeries<>();
-        seriesZ = new LineGraphSeries<>();
-
-        seriesX.setColor(Color.BLUE);
-        seriesY.setColor(Color.RED);
-        seriesZ.setColor(Color.GREEN);
-
-        mGraph.addSeries(seriesX);
-        mGraph.addSeries(seriesY);
-        mGraph.addSeries(seriesZ);
-
-        mGraph.getViewport().setXAxisBoundsManual(true);
-        mGraph.getViewport().setYAxisBoundsManual(true);
-        mGraph.getViewport().setMinX(0);
-        mGraph.getViewport().setMaxX(10);
-
-        mGraph.getViewport().setMinY(-2);
-        mGraph.getViewport().setMaxY(2);
-    }
-
-    protected void onVirtualAccelChanged(float[] virtualAccel) {
-
-    }
-
     private float[] computeAccelVirtualOrientation(float[] rotationMatrix, float[] linearAcceleration) {
         float r[] = new float[3];
         float l[] = linearAcceleration;
@@ -384,46 +380,27 @@ public class VirtualOLoggerActivity extends Activity implements View.OnClickList
         return result;
     }
 
-//    private class LogTask extends AsyncTask<Object, Object, float[]> {
-//        private long logId;
-//        private float timeStamp;
-//
-//        private float[] data;
-//        private float[] linearAcceleration;
-//        private float[] magnet;
-//        private float[] rotationMatrix;
-//
-//        public LogTask(long logId, float timeStamp, float[] data, float[] linearAcceleration, float[] magnet, float[] rotationMatrix) {
-//            this.logId = logId;
-//            this.timeStamp = timeStamp;
-//            this.data = data;
-//            this.linearAcceleration = linearAcceleration;
-//            this.magnet = magnet;
-//            this.rotationMatrix = rotationMatrix;
-//        }
-//
-//        @Override
-//        protected float[] doInBackground(Object... params) {
-//            float[] fixedAccel = computeAccelVirtualOrientation(rotationMatrix);
-//            try {
-//                logData(timeStamp, logId, fixedAccel);
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-//
-//            float[] accel = new float[4];
-////            accel[0] = virtualAccel[0];
-////            accel[1] = virtualAccel[1];
-////            accel[2] = virtualAccel[2];
-////            accel[3] = timeStamp;
-//
-//            return accel;
-//        }
-//
-//        protected void onPostExecute(float[] result) {
-////            Log.d(LOG_TAG, "LogTask - Log saved");
-////            System.arraycopy(result, 0, virtualAccel, 0, result.length - 1);
-////            onVirtualAccelChanged(result);
-//        }
-//    }
+    private class LogTask extends AsyncTask<Object, Object, Integer> {
+        private long logId;
+        private float timeStamp;
+        private float[] data;
+
+        public LogTask(long logId, float timeStamp, float[] data) {
+            this.logId = logId;
+            this.timeStamp = timeStamp;
+            this.data = data;
+        }
+
+        @Override
+        protected Integer doInBackground(Object... params) {
+            try {
+                logData(timeStamp, logId, data);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            return 0;
+        }
+
+    }
 }
