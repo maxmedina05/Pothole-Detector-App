@@ -81,6 +81,7 @@ public class VirtualOFinderActivity extends VirtualOLoggerActivity {
             }
         }
         super.onAccelerometerSensorChanged(nvalues);
+        PdAlgorithm(mTimestamp, virtualAccel[0], virtualAccel[1], virtualAccel[2]);
     }
 
     private void loadDataFromCSV() {
