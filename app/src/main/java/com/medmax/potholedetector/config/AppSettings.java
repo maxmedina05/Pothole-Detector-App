@@ -1,5 +1,7 @@
 package com.medmax.potholedetector.config;
 
+import android.hardware.SensorManager;
+
 /**
  * Created by Max Medina on 2017-07-07.
  */
@@ -20,5 +22,8 @@ public class AppSettings {
     public static final int NDIGITS                 = 5;
 
     public static final float SPEED_CONSTANT = 3.6f;
+
+    public static final int SAMPLING_RATE = SensorManager.SENSOR_DELAY_FASTEST;
+    public static final int UPDATE_UI_DELAY = 100;
 }
 

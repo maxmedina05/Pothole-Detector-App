@@ -1,21 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
-    <ListPreference
-        android:key="@string/pref_algorithm_list_key"
-        android:title="@string/pref_algorithm_list_title"
-        android:entries="@array/pref_algorithm_list"
-        android:entryValues="@array/pref_algorithm_list_values"
-        android:defaultValue="100"
-        />
-
-    <EditTextPreference
-        android:defaultValue="1.4"
-        android:key="@string/pref_zthresh_key"
-        android:selectAllOnFocus="true"
-        android:singleLine="true"
-        android:inputType="numberDecimal"
-        android:title="@string/pref_title_z_thresh_value"
-        android:summary="@string/pref_summary_z_thresh_summary"/>
 
     <PreferenceCategory
         android:title="@string/robs_algorithm_parameters"
@@ -63,12 +47,6 @@
             android:title="STD X Thresh"/>
     </PreferenceCategory>
 
-    <CheckBoxPreference
-        android:key="@string/pref_debugger_mode"
-        android:title="Debugger Mode"
-        android:summary="read accelerometer data from Downloads/mock-dataset.csv"
-        android:defaultValue="false" />
-
     <EditTextPreference
         android:defaultValue="1.0"
         android:key="@string/pref_cooldown_time"
@@ -77,4 +55,10 @@
         android:inputType="numberDecimal"
         android:summary="Time to wait before trying to detect another defect."
         android:title="Cooldown time"/>
+
+    <CheckBoxPreference
+        android:key="@string/pref_debugger_mode"
+        android:title="Debugger Mode"
+        android:summary="read accelerometer data from Downloads/mock-dataset.csv"
+        android:defaultValue="false" />
 </PreferenceScreen>

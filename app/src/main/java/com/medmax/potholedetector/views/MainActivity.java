@@ -38,14 +38,14 @@ public class MainActivity extends Activity implements View.OnClickListener {
         btnLogger = (Button)findViewById(R.id.btn_logger);
         btnFinder = (Button)findViewById(R.id.btn_finder);
         btnFinderEx = (Button)findViewById(R.id.btn_finder_ex);
-        btnVirtualOrientation = (Button) findViewById(R.id.btn_virtual_orientation);
-        btnVoFinder = (Button) findViewById(R.id.btn_vo_finder);
+//        btnVirtualOrientation = (Button) findViewById(R.id.btn_virtual_orientation);
+//        btnVoFinder = (Button) findViewById(R.id.btn_vo_finder);
 
         btnLogger.setOnClickListener(this);
         btnFinder.setOnClickListener(this);
         btnFinderEx.setOnClickListener(this);
-        btnVirtualOrientation.setOnClickListener(this);
-        btnVoFinder.setOnClickListener(this);
+//        btnVirtualOrientation.setOnClickListener(this);
+//        btnVoFinder.setOnClickListener(this);
     }
 
     @Override
@@ -88,15 +88,15 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 intent = new Intent(MainActivity.this, LoggerActivity.class);
                 break;
 
-            case R.id.btn_virtual_orientation:
-                Log.d(LOG_TAG, "btn_virtual_orientation");
-                intent = new Intent(MainActivity.this, VirtualOLoggerActivity.class);
-                break;
-
-            case R.id.btn_vo_finder:
-                Log.d(LOG_TAG, "btn_vo_finder");
-                intent = new Intent(MainActivity.this, VirtualOFinderActivity.class);
-                break;
+//            case R.id.btn_virtual_orientation:
+//                Log.d(LOG_TAG, "btn_virtual_orientation");
+//                intent = new Intent(MainActivity.this, VirtualOLoggerActivity.class);
+//                break;
+//
+//            case R.id.btn_vo_finder:
+//                Log.d(LOG_TAG, "btn_vo_finder");
+//                intent = new Intent(MainActivity.this, VirtualOFinderActivity.class);
+//                break;
             default:
                 intent = new Intent(MainActivity.this, LoggerActivity.class);
                 break;

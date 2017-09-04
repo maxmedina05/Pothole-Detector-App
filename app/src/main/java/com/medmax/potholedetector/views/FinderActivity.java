@@ -1,16 +1,14 @@
 package com.medmax.potholedetector.views;
 
-import android.hardware.SensorEvent;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.Nullable;
 import android.util.Log;
 import android.view.View;
 
-import com.medmax.potholedetector.BaseSensorActivity;
 import com.medmax.potholedetector.config.AppSettings;
 import com.medmax.potholedetector.data.analyzer.PotholeDataFrame;
-import com.medmax.potholedetector.data.analyzer.PotholeFinder;
 import com.medmax.potholedetector.models.AccData;
 import com.medmax.potholedetector.models.Defect;
 import com.medmax.potholedetector.utilities.MathHelper;
@@ -25,17 +23,16 @@ import java.io.IOException;
  * Created by Max Medina on 2017-07-06.
  */
 
-public class FinderActivity extends BaseSensorActivity {
+public class FinderActivity extends LoggerActivity {
     // Constants
     public final static String LOG_TAG = FinderActivity.class.getSimpleName();
 
     // Analyzer
-    private PotholeFinder mFinder;
     private PotholeDataFrame mDataFrame;
 
     private boolean defectFound = false;
-    private float stime = 0;
-    private float ctime = 0;
+    private float finderStartTime = 0;
+    private float finderCurrentTime = 0;
 
     // Debugger fields
     private BufferedReader mReader;
@@ -44,17 +41,14 @@ public class FinderActivity extends BaseSensorActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        mFinder = new PotholeFinder();
         mDataFrame = new PotholeDataFrame();
-
-        mFinder.setzThreshValue(z_thresh);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
 
-        if(isDebuggerOn){
+        if(mPreferenceManager.isDebuggerOn()){
             loadDataFromCSV();
         }
     }
@@ -86,20 +80,24 @@ public class FinderActivity extends BaseSensorActivity {
     }
 
     @Override
-    public void myOnClick(View v) {
-        if(mStartLogger) {
-            stime = 0;
+    public void onClick(View v) {
+        super.onClick(v);
+
+        if(isLogging) {
+            finderCurrentTime = 0;
         }
     }
 
     @Override
-    public void myOnSensorChanged(SensorEvent event) {
-        float x = event.values[0];
-        float y = event.values[1];
-        float z = event.values[2];
+    protected void onAccelerometerSensorChanged(float[] values) {
+        super.onAccelerometerSensorChanged(values);
+
+        float x = values[0];
+        float y = values[1];
+        float z = values[2];
         float timestamp = mTimestamp;
 
-        if(mStartLogger && isDebuggerOn) {
+        if(isLogging && mPreferenceManager.isDebuggerOn()) {
             String line = "";
             try {
                 if((line = mReader.readLine()) != null) {
@@ -108,91 +106,99 @@ public class FinderActivity extends BaseSensorActivity {
                     x           = Float.parseFloat(row[4]);
                     y           = Float.parseFloat(row[5]);
                     z           = Float.parseFloat(row[6]);
-
                 }
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
 
-        if(mStartLogger) {
-             x /= AppSettings.GRAVITY_CONSTANT;
-             y /= AppSettings.GRAVITY_CONSTANT;
-             z /= AppSettings.GRAVITY_CONSTANT;
+        if(isLogging) {
+            x /= AppSettings.GRAVITY_CONSTANT;
+            y /= AppSettings.GRAVITY_CONSTANT;
+            z /= AppSettings.GRAVITY_CONSTANT;
 
-            switch (selectedAlgorithm) {
-                case EnumAlgorithm.Z_THRESH_ALGORITHM:
-                    doZThreshAlgorithm(z);
-                    break;
-                case EnumAlgorithm.ROBS_ALGORITHM:
-                    doRobsAlgorithm(timestamp, x, y, z);
-                    break;
-                case EnumAlgorithm.STDX_ALGORITHM:
-                    doStdXAlgorithm(timestamp, x, y, z);
-                    break;
-            }
+            pdAlgorithm(timestamp, x, y, z);
         }
     }
 
-    private void doZThreshAlgorithm(float z) {
-        mFinder.handleState(z);
-        if(mFinder.isThereAPothole()){
-            Log.d(LOG_TAG, defectFoundMsg);
-            sendToast(defectFoundMsg);
-        }
-    }
-
-    private void doRobsAlgorithm(float timestamp, float x, float y, float z) {
+    private void pdAlgorithm(float timestamp, float x, float y, float z) {
         mDataFrame.addRow(new AccData(x, y, z, timestamp));
-        ctime = timestamp;
-
-        if(ctime <= winSize){
-            return;
-        }
-
-        if((ctime - stime) >= smWinSize) {
-            PotholeDataFrame win    = mDataFrame.query(ctime - winSize, ctime - smWinSize);
-            PotholeDataFrame smWin  = mDataFrame.query(ctime - smWinSize, ctime);
-
-            float wmean = (float) win.computeMean();
-            float wstd = (float) win.computeStd();
-            float wceil = wmean + K*wstd;
-
-            float smw_max = (float) smWin.computeMax();
-            float smw_std = (float) smWin.computeStd();
-
-            if(smw_max > wceil && smw_std > z_std_thresh) {
-                onDefectFound(win, win, smWin, stime, ctime, lastLongitude, lastLatitude);
-            }
-
-            stime = ctime;
-        }
-    }
-
-    private void doStdXAlgorithm(float timestamp, float x, float y, float z) {
-        mDataFrame.addRow(new AccData(x, y, z, timestamp));
-        ctime = timestamp;
-        float deltaTime = ctime - stime;
+        finderCurrentTime   = timestamp;
+        float deltaTime     = finderCurrentTime - finderStartTime;
+        float winSize       = mPreferenceManager.getWinSize();
+        float smWinSize     = mPreferenceManager.getSmWinSize();
 
         // wait for cooldown delay
-        if(defectFound) {
-            if(deltaTime <= coolDownTime) {
+        if (defectFound) {
+            if (deltaTime <= mPreferenceManager.getCoolDownTime()) {
                 return;
             } else {
                 defectFound = false;
-                stime = ctime;
             }
         }
 
         // don't start working until it has enough data
-        if(ctime <= winSize){
+        if (finderCurrentTime <= winSize) {
             return;
         }
 
-        if(deltaTime >= smWinSize) {
-            PotholeDataFrame oneWin = mDataFrame.query(ctime-winSize, ctime);
-            PotholeDataFrame win    = oneWin.query(ctime - winSize, ctime - smWinSize);
-            PotholeDataFrame smWin  = oneWin.query(ctime - smWinSize, ctime);
+        if (deltaTime >= smWinSize) {
+            new FinderTask(finderStartTime, finderCurrentTime).execute(mDataFrame.clone());
+            finderStartTime = finderCurrentTime;
+        }
+    }
+
+    protected void onDefectFound(PotholeDataFrame oneWin, PotholeDataFrame win, PotholeDataFrame smWin, float stime, float ctime, float longitude, float latitude) {
+        Log.d(LOG_TAG, String.format("A defect was found between ti: %.4f and tf: %.4f", stime, ctime));
+        sendToast(defectFoundMsg);
+    }
+
+    private class FinderObject {
+        private float startTime;
+        private float currentTime;
+        private boolean defectFound;
+
+        public FinderObject(float startTime, float currentTime, boolean defectFound) {
+            this.startTime = startTime;
+            this.currentTime = currentTime;
+            this.defectFound = defectFound;
+        }
+
+        public float getStartTime() {
+            return startTime;
+        }
+
+        public float getCurrentTime() {
+            return currentTime;
+        }
+
+        public boolean wasDefectFound() {
+            return defectFound;
+        }
+
+        public void setDefectFound(boolean defectFound) {
+            this.defectFound = defectFound;
+        }
+    }
+
+    private class FinderTask extends AsyncTask<PotholeDataFrame, Integer, FinderObject> {
+        private float startTime;
+        private float currentTime;
+
+        public FinderTask(float startTime, float currentTime) {
+            this.startTime = startTime;
+            this.currentTime = currentTime;
+        }
+
+        @Override
+        protected FinderObject doInBackground(PotholeDataFrame... params) {
+            FinderObject finderObject = new FinderObject(startTime, currentTime, false);
+            float winSize = mPreferenceManager.getWinSize();
+            float smWinSize = mPreferenceManager.getSmWinSize();
+
+            PotholeDataFrame oneWin = params[0].query(currentTime - winSize, currentTime);
+            PotholeDataFrame win = oneWin.query(currentTime - winSize, currentTime - smWinSize);
+            PotholeDataFrame smWin = oneWin.query(currentTime - smWinSize, currentTime);
 
             float one_x_mean = (float) oneWin.computeMean(Defect.Axis.AXIS_X);
             float one_x_std = (float) oneWin.computeStd(Defect.Axis.AXIS_X, one_x_mean);
@@ -203,33 +209,34 @@ public class FinderActivity extends BaseSensorActivity {
             one_x_std = (float) MathHelper.round(one_x_std, AppSettings.NDIGITS);
             sm_z_std = (float) MathHelper.round(sm_z_std, AppSettings.NDIGITS);
 
-            if(one_x_std < x_std_thresh || sm_z_std < z_std_thresh) {
-                stime = ctime;
-                return;
+            one_x_std = (float) MathHelper.round(one_x_std, AppSettings.NDIGITS);
+            sm_z_std = (float) MathHelper.round(sm_z_std, AppSettings.NDIGITS);
+
+            if(one_x_std < mPreferenceManager.getxStdThresh() || sm_z_std < mPreferenceManager.getzStdThresh()) {
+                return finderObject;
             }
 
             float mean = (float) win.computeMean(Defect.Axis.AXIS_Z);
             float std = (float) win.computeStd(Defect.Axis.AXIS_Z, mean);
             // dynamic thresh
-            float thresh = (float) MathHelper.round(mean + (K*std), AppSettings.NDIGITS);
+            float thresh = (float) MathHelper.round(mean + (mPreferenceManager.getK() * std), AppSettings.NDIGITS);
             float z_max = (float) MathHelper.round(smWin.computeMax(), AppSettings.NDIGITS);
 
-            if(z_max >= thresh) {
+            if (z_max >= thresh) {
                 defectFound = true;
-                onDefectFound(oneWin, win, smWin, stime, ctime, lastLongitude, lastLatitude);
+                finderObject.setDefectFound(true);
             }
-            stime = ctime;
+
+            return finderObject;
         }
-    }
 
-    protected void onDefectFound(PotholeDataFrame oneWin, PotholeDataFrame win, PotholeDataFrame smWin, float stime, float ctime, float longitude, float latitude) {
-        Log.d(LOG_TAG, String.format("A defect was found between ti: %.4f and tf: %.4f", stime, ctime));
-        sendToast(defectFoundMsg);
-    }
-
-    public static class EnumAlgorithm {
-        public static final int Z_THRESH_ALGORITHM = 100;
-        static final int ROBS_ALGORITHM = 200;
-        static final int STDX_ALGORITHM = 250;
+        @Override
+        protected void onPostExecute(FinderObject df) {
+            if(df.wasDefectFound()) {
+                sendToast(defectFoundMsg);
+                Log.d(LOG_TAG, String.format("A defect was found between ti: %.4f and tf: %.4f", df.getStartTime(), df.getCurrentTime()));
+                finderStartTime = finderCurrentTime;
+            }
+        }
     }
 }
