@@ -143,7 +143,7 @@ public class FinderActivity extends LoggerActivity {
         }
 
         if (deltaTime >= smWinSize) {
-            new FinderTask(finderStartTime, finderCurrentTime).execute(mDataFrame.clone());
+            new FinderTask(finderStartTime, finderCurrentTime, lastLatitude, lastLongitude).execute(mDataFrame.clone());
             finderStartTime = finderCurrentTime;
         }
     }
@@ -153,15 +153,24 @@ public class FinderActivity extends LoggerActivity {
         sendToast(defectFoundMsg);
     }
 
+    protected void onDefectFound(float startTime, float currentTime, float longitude, float latitude) {
+        Log.d(LOG_TAG, String.format("A defect was found between ti: %.4f and tf: %.4f", startTime, currentTime));
+        sendToast(defectFoundMsg);
+    }
+
     private class FinderObject {
         private float startTime;
         private float currentTime;
+        private float latitude;
+        private float longitude;
         private boolean defectFound;
 
-        public FinderObject(float startTime, float currentTime, boolean defectFound) {
+        public FinderObject(float startTime, float currentTime, float latitude, float longitude, boolean defectFound) {
             this.startTime = startTime;
             this.currentTime = currentTime;
             this.defectFound = defectFound;
+            this.latitude = latitude;
+            this.longitude = longitude;
         }
 
         public float getStartTime() {
@@ -179,20 +188,40 @@ public class FinderActivity extends LoggerActivity {
         public void setDefectFound(boolean defectFound) {
             this.defectFound = defectFound;
         }
+
+        public float getLatitude() {
+            return latitude;
+        }
+
+        public void setLatitude(float latitude) {
+            this.latitude = latitude;
+        }
+
+        public float getLongitude() {
+            return longitude;
+        }
+
+        public void setLongitude(float longitude) {
+            this.longitude = longitude;
+        }
     }
 
     private class FinderTask extends AsyncTask<PotholeDataFrame, Integer, FinderObject> {
         private float startTime;
         private float currentTime;
+        private float latitude;
+        private float longitude;
 
-        public FinderTask(float startTime, float currentTime) {
+        public FinderTask(float startTime, float currentTime, float lastLatitude, float lastLongitude) {
             this.startTime = startTime;
             this.currentTime = currentTime;
+            this.latitude = lastLatitude;
+            this.longitude = lastLongitude;
         }
 
         @Override
         protected FinderObject doInBackground(PotholeDataFrame... params) {
-            FinderObject finderObject = new FinderObject(startTime, currentTime, false);
+            FinderObject finderObject = new FinderObject(startTime, currentTime, latitude, longitude, false);
             float winSize = mPreferenceManager.getWinSize();
             float smWinSize = mPreferenceManager.getSmWinSize();
 
@@ -233,10 +262,12 @@ public class FinderActivity extends LoggerActivity {
         @Override
         protected void onPostExecute(FinderObject df) {
             if(df.wasDefectFound()) {
-                sendToast(defectFoundMsg);
+//                sendToast(defectFoundMsg);
+                onDefectFound(df.getStartTime(), df.getCurrentTime(), df.getLongitude(), df.getLatitude());
                 Log.d(LOG_TAG, String.format("A defect was found between ti: %.4f and tf: %.4f", df.getStartTime(), df.getCurrentTime()));
-                finderStartTime = finderCurrentTime;
             }
         }
     }
+
+
 }
