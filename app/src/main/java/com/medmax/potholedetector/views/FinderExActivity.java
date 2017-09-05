@@ -2,12 +2,10 @@ package com.medmax.potholedetector.views;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.hardware.SensorEvent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.Nullable;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ListView;
@@ -56,8 +54,7 @@ public class FinderExActivity extends FinderActivity {
         btnClearlist.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-//                saveDefectsToCSV(mAdapter.getItems());
-                if(!isDebuggerOn) {
+                if(!mPreferenceManager.isDebuggerOn()) {
                     saveDefectsToCSV(mAdapter.getItems());
                 }
                 mAdapter.clear();
@@ -105,7 +102,7 @@ public class FinderExActivity extends FinderActivity {
     }
 
     private void writeDefectSeed(int seed) {
-        if(!isDebuggerOn) {
+        if(!mPreferenceManager.isDebuggerOn()) {
             SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
             SharedPreferences.Editor editor = sharedPref.edit();
             editor.putInt(getString(R.string.pref_defect_seed), seed);
@@ -119,15 +116,24 @@ public class FinderExActivity extends FinderActivity {
     }
 
     @Override
-    public void myOnSensorChanged(SensorEvent event) {
-        super.myOnSensorChanged(event);
-    }
-
-    @Override
     protected void onDefectFound(PotholeDataFrame oneWin, PotholeDataFrame win, PotholeDataFrame smWin, float stime, float ctime, float longitude, float latitude)  {
         super.onDefectFound(oneWin, win, smWin, stime, ctime, longitude, latitude);
 
         new computeDefectStatistics(++defectSeed, stime, ctime, longitude, latitude).execute(oneWin, win, smWin);
+    }
+
+    @Override
+    protected void onDefectFound(float startTime, float endTime, float longitude, float latitude)  {
+        super.onDefectFound(startTime, endTime, longitude, latitude);
+
+        Defect defect = new Defect();
+        defect.setId(++defectSeed);
+        defect.setStartTime(startTime);
+        defect.setEndTime(endTime);
+        defect.setLatitude(latitude);
+        defect.setLongitude(longitude);
+        mDefects.add(defect);
+        mAdapter.notifyDataSetChanged();
     }
 
     private class computeDefectStatistics extends AsyncTask<PotholeDataFrame, Integer, Defect> {

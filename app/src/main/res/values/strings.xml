@@ -9,7 +9,7 @@
 
     <string name="z_thresh_algorithm">Z-Thresh Algorithm</string>
     <string name="pref_algorithm_list_key">pref_algorithm_list_key</string>
-    <string name="robs_algorithm_parameters">Rob\'s Algorithm Parameters</string>
+    <string name="robs_algorithm_parameters">Algorithm Parameters</string>
     <string name="pref_std_thresh">pref_std_thresh</string>
     <string name="pref_x_std_thresh">pref_x_std_thresh</string>
     <string name="pref_k_value">pref_k_value</string>
