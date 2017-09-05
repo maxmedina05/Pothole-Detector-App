@@ -1,11 +1,64 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory
+        android:title="@string/robs_algorithm_parameters"
+        android:key="robs_algorithm_parameters_key">
+
+        <EditTextPreference
+            android:defaultValue="1"
+            android:key="@string/pref_window_size"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:inputType="numberDecimal"
+            android:title="Window Size"/>
+
+        <EditTextPreference
+            android:defaultValue="0.1"
+            android:key="@string/pref_small_window_size"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:inputType="numberDecimal"
+            android:title="Window Small Size"/>
+
+        <EditTextPreference
+            android:defaultValue="3"
+            android:key="@string/pref_k_value"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:inputType="numberDecimal"
+            android:title="K"
+            android:summary="Multiply the std K times"/>
+
+        <EditTextPreference
+            android:defaultValue="0.19"
+            android:key="@string/pref_std_thresh"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:inputType="numberDecimal"
+            android:title="STD Z Thresh"/>
+
+        <EditTextPreference
+            android:defaultValue="0.10"
+            android:key="@string/pref_x_std_thresh"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:inputType="numberDecimal"
+            android:title="STD X Thresh"/>
+    </PreferenceCategory>
+
     <EditTextPreference
-        android:defaultValue="1.4"
-        android:key="@string/pref_zthresh_key"
+        android:defaultValue="1.0"
+        android:key="@string/pref_cooldown_time"
         android:selectAllOnFocus="true"
         android:singleLine="true"
         android:inputType="numberDecimal"
-        android:title="@string/pref_title_z_thresh_value"
-        android:summary="@string/pref_summary_z_thresh_summary"/>
+        android:summary="Time to wait before trying to detect another defect."
+        android:title="Cooldown time"/>
+
+    <CheckBoxPreference
+        android:key="@string/pref_debugger_mode"
+        android:title="Debugger Mode"
+        android:summary="read accelerometer data from Downloads/mock-dataset.csv"
+        android:defaultValue="false" />
 </PreferenceScreen>

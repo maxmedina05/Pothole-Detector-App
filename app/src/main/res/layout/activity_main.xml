@@ -18,7 +18,7 @@
         android:layout_width="160dp"
         android:layout_height="64dp"
         android:layout_gravity="center_horizontal"
-        android:layout_marginTop="32dp"
+        android:layout_marginTop="16dp"
         android:text="Logger"/>
 
     <Button
@@ -26,6 +26,30 @@
         android:layout_width="160dp"
         android:layout_height="64dp"
         android:layout_gravity="center_horizontal"
-        android:layout_marginTop="32dp"
+        android:layout_marginTop="16dp"
         android:text="Finder"/>
+
+    <Button
+        android:id="@+id/btn_finder_ex"
+        android:layout_width="160dp"
+        android:layout_height="64dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="16dp"
+        android:text="Finder EX"/>
+
+    <!--<Button-->
+        <!--android:id="@+id/btn_virtual_orientation"-->
+        <!--android:layout_width="160dp"-->
+        <!--android:layout_height="64dp"-->
+        <!--android:layout_gravity="center_horizontal"-->
+        <!--android:layout_marginTop="16dp"-->
+        <!--android:text="Virtual Orientation"/>-->
+
+    <!--<Button-->
+        <!--android:id="@+id/btn_vo_finder"-->
+        <!--android:layout_width="160dp"-->
+        <!--android:layout_height="64dp"-->
+        <!--android:layout_gravity="center_horizontal"-->
+        <!--android:layout_marginTop="16dp"-->
+        <!--android:text="VO Finder"/>-->
 </LinearLayout>

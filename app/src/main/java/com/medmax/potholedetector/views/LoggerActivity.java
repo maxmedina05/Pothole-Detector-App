@@ -1,15 +1,13 @@
 package com.medmax.potholedetector.views;
 
-import android.hardware.SensorEvent;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.Nullable;
-import android.util.Log;
 import android.view.View;
 
 import com.medmax.potholedetector.BaseSensorActivity;
 import com.medmax.potholedetector.config.AppSettings;
-import com.medmax.potholedetector.threads.ThreadManager;
 import com.medmax.potholedetector.utilities.CSVHelper;
 import com.medmax.potholedetector.utilities.DateTimeHelper;
 import com.medmax.potholedetector.utilities.PotholeCSVContract;
@@ -18,7 +16,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Locale;
-import java.util.concurrent.Callable;
 
 /**
  * Created by Max Medina on 2017-07-06.
@@ -30,110 +27,111 @@ public class LoggerActivity extends BaseSensorActivity {
     public final static String LOG_TAG = LoggerActivity.class.getSimpleName();
 
     // Variables
-    private int mIdSeed = 0;
-    private long loggerStartTime = 0;
+    protected boolean isLogging = false;
+    private long mIdSeed = 0;
+    private long mLogStartTime = 0;
 
     // Helpers
-    CSVHelper csvHelper;
-
-    // Multi threading
-    private ThreadManager mThreadManager;
+    private CSVHelper csvHelper;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         csvHelper = new CSVHelper();
-        mThreadManager = ThreadManager.getsInstance();
     }
 
     @Override
-    protected void onPause() {
-        stopLogging();
-        super.onPause();
-    }
-
-    @Override
-    public void myOnClick(View v) {
-        if (!csvHelper.isOpen()) {
-            initLogging();
+    public void onClick(View v) {
+        isLogging = !isLogging;
+        if (isLogging) {
+            initLogger();
         } else {
-            stopLogging();
+            stopLogger();
         }
     }
 
     @Override
-    public void myOnSensorChanged(SensorEvent event) {
-        if (csvHelper.isOpen()) {
-            if (mIdSeed == 0) {
-                loggerStartTime = System.currentTimeMillis();
-            }
+    protected void onAccelerometerSensorChanged(float[] values) {
+        super.onAccelerometerSensorChanged(values);
 
-            mTimestamp = (System.currentTimeMillis() - loggerStartTime) / 1000.0f;
-            mThreadManager.addCallable(new Callable() {
-                @Override
-                public Object call() throws Exception {
-                    logChanges(mTimestamp);
-                    return null;
-                }
-            });
+        if(isLogging) {
+            mTimestamp = (System.currentTimeMillis() - mLogStartTime) / 1000.0f;
+
+            new LogTask(++mIdSeed, mTimestamp, mRawAccelerometerValues).execute();
         }
     }
 
-    private void initLogging() {
+    private void initLogger() {
+        mLogStartTime = System.currentTimeMillis();
         mIdSeed = 0;
-        String fileName = String.format("%s_%s.%s",
-                AppSettings.POTHOLE_FILENAME,
-                DateTimeHelper.getCurrentDateTime("yyyy-MM-dd hh-mm-ss"),
-                AppSettings.CSV_EXTENSION_NAME
-        );
+        if (!mPreferenceManager.isDebuggerOn()) {
+            String fileName = String.format("%s_%s.%s",
+                    AppSettings.POTHOLE_FILENAME,
+                    DateTimeHelper.getCurrentDateTime("yyyy-MM-dd hh-mm-ss"),
+                    AppSettings.CSV_EXTENSION_NAME
+            );
 
-        File exportDir = new File(Environment.getExternalStorageDirectory(), AppSettings.POTHOLE_DIRECTORY);
-        try {
-            csvHelper.open(exportDir, fileName, true);
-            // TODO: Remove logger
-            Log.d(LOG_TAG, "Start Logger");
-        } catch (FileNotFoundException e) {
-            sendToast("File was not found!");
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void stopLogging() {
-        mTimestamp = 0;
-        if (csvHelper.isOpen()) {
+            File exportDir = new File(Environment.getExternalStorageDirectory(), AppSettings.LOGGER_DIRECTORY);
             try {
-                sendToast(String.format("file %s was created", csvHelper.getcurrentFileName()));
-                csvHelper.close();
-                // TODO: Remove logger
-                Log.d(LOG_TAG, "Stop Logger");
-
+                csvHelper.open(exportDir, fileName, true);
+                csvHelper.setHeader(PotholeCSVContract.PotholeCSV.getHeaders());
+            } catch (FileNotFoundException e) {
+                sendToast("File was not found!");
+                e.printStackTrace();
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
     }
 
-    private void logChanges(float timestamp) throws IOException {
-        // check again to see if the file is still open
-        if (csvHelper.isOpen()) {
-            if (mIdSeed == 0) {
-                csvHelper.setHeader(PotholeCSVContract.PotholeCSV.getHeaders());
+    private void stopLogger() {
+        if (!mPreferenceManager.isDebuggerOn() && csvHelper.isOpen()) {
+            try {
+                sendToast(String.format("file %s was created", csvHelper.getCurrentFileName()));
+                csvHelper.close();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
+        }
+    }
 
+    private synchronized void logData(float timestamp, long logId, float[] data) throws IOException {
+        if (csvHelper.isOpen()) {
             csvHelper.write(String.format(
                     Locale.US,
                     "%d,%s,%s,%.06f,%.6f,%.6f,%.6f",
-                    ++mIdSeed,
+                    logId,
                     DateTimeHelper.getCurrentDateTime("yyyy-MM-dd hh:mm:ss.SSS"),
                     mDeviceName,
                     timestamp,
-                    acc_values[0],
-                    acc_values[1],
-                    acc_values[2])
+                    data[0],
+                    data[1],
+                    data[2])
             );
         }
+    }
+
+    private class LogTask extends AsyncTask<Void, Void, Integer> {
+        private long logId;
+        private float timeStamp;
+        private float[] data;
+
+        LogTask(long logId, float timeStamp, float[] data) {
+            this.logId = logId;
+            this.timeStamp = timeStamp;
+            this.data = data;
+        }
+
+        @Override
+        protected Integer doInBackground(Void... params) {
+            try {
+                logData(timeStamp, logId, data);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return 0;
+        }
+
     }
 }

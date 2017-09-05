@@ -2,8 +2,33 @@
     <string name="app_name">Pothole Finder</string>
     <string name="title_activity_pothole_register">PotholeRegisterActivity</string>
     <string name="action_settings">Settings</string>
-    <string name="pref_title_z_thresh_value">Z-Thresh tvalue</string>
+    <string name="pref_title_z_thresh_value">Z-Thresh value</string>
     <string name="pref_summary_z_thresh_summary">Z-Thresh Algorithm thresh value</string>
     <string name="pref_zthresh_key">pref_zthresh_key</string>
+    <string name="pref_algorithm_list_title">Detector algorithm</string>
 
+    <string name="z_thresh_algorithm">Z-Thresh Algorithm</string>
+    <string name="pref_algorithm_list_key">pref_algorithm_list_key</string>
+    <string name="robs_algorithm_parameters">Algorithm Parameters</string>
+    <string name="pref_std_thresh">pref_std_thresh</string>
+    <string name="pref_x_std_thresh">pref_x_std_thresh</string>
+    <string name="pref_k_value">pref_k_value</string>
+    <string name="pref_window_size">pref_window_size</string>
+    <string name="pref_small_window_size">pref_small_window_size</string>
+    <string name="pref_defect_seed">pref_defect_seed</string>
+    <string name="pref_debugger_mode">pref_debugger_mode</string>
+    <string name="defect_found">A defect was found!</string>
+    <string name="pref_cooldown_time">pref_cooldown_time</string>
+
+    <string-array name="pref_algorithm_list">
+        <item>@string/z_thresh_algorithm</item>
+        <item>Robs Algorithm</item>
+        <item>StdX Algorithm</item>
+    </string-array>
+
+    <string-array name="pref_algorithm_list_values">
+        <item>100</item>
+        <item>200</item>
+        <item>250</item>
+    </string-array>
 </resources>

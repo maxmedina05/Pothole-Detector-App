@@ -3,6 +3,10 @@
           package="com.medmax.potholedetector">
 
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <!--<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>-->
+
+    <uses-feature android:name="android.hardware.location.gps"/>
 
     <application
         android:allowBackup="true"
@@ -18,7 +22,11 @@
             </intent-filter>
         </activity>
         <activity android:name=".views.LoggerActivity" android:screenOrientation="portrait"/>
-        <activity android:name=".views.FinderActivity"/>
+        <activity android:name=".views.FinderActivity" android:screenOrientation="portrait"/>
+        <activity android:name=".views.FinderExActivity" android:screenOrientation="portrait"/>
+        <activity android:name=".views.VirtualOLoggerActivity" android:screenOrientation="portrait"/>
+        <activity android:name=".views.VirtualOFinderActivity" android:screenOrientation="portrait"/>
         <activity android:name=".views.SettingsActivity"/>
+
     </application>
 </manifest>

@@ -6,49 +6,51 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.Nullable;
-import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
+import com.medmax.potholedetector.config.AppSettings;
+import com.medmax.potholedetector.services.GPSManager;
+import com.medmax.potholedetector.services.OnGPSUpdateListener;
+import com.medmax.potholedetector.utilities.FrequencyCalculator;
+import com.medmax.potholedetector.utilities.MyPreferenceManager;
+
 import java.util.Locale;
-import java.util.concurrent.Callable;
 
 /**
  * Created by Max Medina on 2017-07-06.
  */
 
-public abstract class BaseSensorActivity extends Activity implements View.OnClickListener, SensorEventListener {
+public abstract class BaseSensorActivity extends Activity implements View.OnClickListener, SensorEventListener, OnGPSUpdateListener {
 
     // Constants
-    public final static String LOG_TAG = BaseSensorActivity.class.getSimpleName();
-    protected static final int SAMPLING_RATE = SensorManager.SENSOR_DELAY_FASTEST;
-    protected static final int UPDATE_UI_DELAY = 100;
+    public static final String LOG_TAG = BaseSensorActivity.class.getSimpleName();
 
     // Variables
-    protected volatile float[] acc_values = new float[3];
-    protected String mDeviceName = "";
     protected float mTimestamp = 0;
-    protected boolean startLogger = false;
+    protected String mDeviceName = "";
+    protected String defectFoundMsg = "";
+    private FrequencyCalculator mFrequencyCalculator;
 
-    // Sensor properties
-    protected SensorManager mSensorManager;
-    protected Sensor mAccelerometer;
+    // Sensor Variables
+    protected volatile float[] mRawAccelerometerValues = new float[3];
+    protected float mCarMovingSpeed = 0;
+    protected float lastLongitude = 0;
+    protected float lastLatitude = 0;
 
-    // Frequency
-    protected int fqCount = 0;
-    protected float fqsTime = 0;
-    protected float fqcTime = 0;
-    protected float fqHz = 0;
+    private GPSManager mGPSManager;
+    private SensorManager mSensorManager;
+    private Sensor mAccelerometerSensor;
 
-    protected Handler mHandler;
-    protected Runnable mRunnable;
+    // Preferences
+    protected MyPreferenceManager mPreferenceManager;
 
     // UI Components
     protected TextView tvTimestamp;
@@ -56,71 +58,56 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     protected TextView tvAxisX;
     protected TextView tvAxisY;
     protected TextView tvAxisZ;
+    protected TextView tvSpeed;
     protected ToggleButton btnLog;
+
+    // Multi thread
+    private Handler mHandler;
+    private Runnable mRunnable;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        setContentView(R.layout.activity_sensor);
+        defectFoundMsg = getString(R.string.defect_found);
+        mPreferenceManager = MyPreferenceManager.getInstance();
+        mPreferenceManager.loadPreferenceParameters(getResources(), this);
+        setUILayout();
+        setupUIComponents();
+        setupSensors();
+        setupUIUpdateThread();
 
-        tvTimestamp = (TextView)findViewById(R.id.tv_timestamp);
-        tvFrequency = (TextView)findViewById(R.id.tv_frequency);
-        tvAxisX = (TextView)findViewById(R.id.tv_x_axis);
-        tvAxisY = (TextView)findViewById(R.id.tv_y_axis);
-        tvAxisZ = (TextView)findViewById(R.id.tv_z_axis);
-
-        btnLog = (ToggleButton)findViewById(R.id.btn_log);
-        btnLog.setOnClickListener(this);
-
-        mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-
-        mHandler = new Handler();
-        mHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                mRunnable = this;
-                updateUI();
-                mHandler.postDelayed(mRunnable, UPDATE_UI_DELAY);
-            }
-        }, UPDATE_UI_DELAY);
+        mGPSManager = new GPSManager(this);
+        mGPSManager.setOnGPSUpdateListener(this);
 
         mDeviceName = Build.MANUFACTURER + " " + Build.MODEL;
+        mFrequencyCalculator = new FrequencyCalculator();
     }
 
+    // Device Methods
     @Override
     protected void onResume() {
         super.onResume();
-        resetSensorTimer();
-        mSensorManager.registerListener(this, mAccelerometer, SAMPLING_RATE);
-        mHandler.postDelayed(mRunnable, UPDATE_UI_DELAY);
+        mFrequencyCalculator.reset();
+        mSensorManager.registerListener(this, mAccelerometerSensor, AppSettings.SAMPLING_RATE);
+        mSensorManager.registerListener(this, mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD), AppSettings.SAMPLING_RATE);
+        mGPSManager.requestLocationUpdates();
     }
 
     @Override
     protected void onPause() {
+        super.onPause();
         btnLog.setChecked(false);
         mSensorManager.unregisterListener(this);
-        mHandler.removeCallbacks(mRunnable);
-        super.onPause();
+        mGPSManager.removeLocationUpdates();
     }
-
-    @Override
-    public void onClick(View v) {
-        startLogger = !startLogger;
-
-        myOnClick(v);
-    }
-
-    public abstract void myOnClick(View v);
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        if (Sensor.TYPE_ACCELEROMETER == event.sensor.getType()) {
-            calculateFrequency();
-            System.arraycopy(event.values, 0, acc_values, 0, event.values.length);
-
-            myOnSensorChanged(event);
+        switch (event.sensor.getType()) {
+            case Sensor.TYPE_ACCELEROMETER:
+                onAccelerometerSensorChanged(event.values);
+                break;
         }
     }
 
@@ -129,35 +116,63 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
 
     }
 
-    public abstract void myOnSensorChanged(SensorEvent event);
+    @Override
+    public void onGPSUpdate(Location location) {
+        if (location.hasSpeed()) {
+            mCarMovingSpeed = location.getSpeed() * AppSettings.SPEED_CONSTANT;
+        }
+
+        lastLatitude = (float) location.getLatitude();
+        lastLongitude = (float) location.getLongitude();
+    }
+
+    // Sensor Methods
+    protected void setUILayout() {
+        setContentView(R.layout.activity_sensor);
+    }
+
+    private void setupUIUpdateThread() {
+        mHandler = new Handler();
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                mRunnable = this;
+                updateUI();
+                mHandler.postDelayed(mRunnable, AppSettings.UPDATE_UI_DELAY);
+            }
+        }, AppSettings.UPDATE_UI_DELAY);
+    }
+
+    private void setupUIComponents() {
+        tvTimestamp = (TextView) findViewById(R.id.tv_timestamp);
+        tvSpeed = (TextView) findViewById(R.id.tv_speed);
+        tvFrequency = (TextView) findViewById(R.id.tv_frequency);
+        tvAxisX = (TextView) findViewById(R.id.tv_x_axis);
+        tvAxisY = (TextView) findViewById(R.id.tv_y_axis);
+        tvAxisZ = (TextView) findViewById(R.id.tv_z_axis);
+        btnLog = (ToggleButton) findViewById(R.id.btn_log);
+
+        btnLog.setOnClickListener(this);
+    }
+
+    private void setupSensors() {
+        mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        mAccelerometerSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+    }
+
+    protected void onAccelerometerSensorChanged(float[] values) {
+        mFrequencyCalculator.calculateFrequency();
+        System.arraycopy(values, 0, mRawAccelerometerValues, 0, values.length);
+    }
 
     protected void updateUI() {
-        // TODO: Remove log
-        Log.d(LOG_TAG, "update ui");
-        Log.d(LOG_TAG, String.format("x: %.4f, y: %.4f, z: %.4f", acc_values[0], acc_values[1], acc_values[2]));
+        tvAxisX.setText(String.format(Locale.US, "x: %.4f", mRawAccelerometerValues[0]));
+        tvAxisY.setText(String.format(Locale.US, "y: %.4f", mRawAccelerometerValues[1]));
+        tvAxisZ.setText(String.format(Locale.US, "z: %.4f", mRawAccelerometerValues[2]));
 
-        tvAxisX.setText(String.format(Locale.US, "x: %.4f", acc_values[0]));
-        tvAxisY.setText(String.format(Locale.US, "y: %.4f", acc_values[1]));
-        tvAxisZ.setText(String.format(Locale.US, "z: %.4f", acc_values[2]));
-
-        tvFrequency.setText(String.format(Locale.US, "%.1f hz", fqHz));
-        tvTimestamp.setText(String.format(Locale.US, "%.3f s", mTimestamp));
-    }
-
-    protected void calculateFrequency() {
-        if (fqsTime == 0) {
-            fqsTime = System.nanoTime();
-        }
-        fqcTime = System.nanoTime();
-        fqHz = (fqCount++ / ((fqcTime - fqsTime) / 1000000000.0f));
-    }
-
-    protected void resetSensorTimer() {
-        fqCount = 0;
-        fqsTime = 0;
-        fqcTime = 0;
-        fqHz = 0;
-        mTimestamp = 0;
+        tvFrequency.setText(String.format(Locale.US, "%.1f hz", mFrequencyCalculator.getFqHz()));
+        tvTimestamp.setText(String.format(Locale.US, "timestamp: %.3f s", mTimestamp));
+        tvSpeed.setText(String.format(Locale.US, "speed: %.2f m/s", mCarMovingSpeed));
     }
 
     protected void sendToast(String message) {

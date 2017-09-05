@@ -24,7 +24,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
     // UI Components
     Button btnLogger;
     Button btnFinder;
-
+    Button btnFinderEx;
+    Button btnVirtualOrientation;
+    Button btnVoFinder;
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -35,9 +37,15 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         btnLogger = (Button)findViewById(R.id.btn_logger);
         btnFinder = (Button)findViewById(R.id.btn_finder);
+        btnFinderEx = (Button)findViewById(R.id.btn_finder_ex);
+//        btnVirtualOrientation = (Button) findViewById(R.id.btn_virtual_orientation);
+//        btnVoFinder = (Button) findViewById(R.id.btn_vo_finder);
 
         btnLogger.setOnClickListener(this);
         btnFinder.setOnClickListener(this);
+        btnFinderEx.setOnClickListener(this);
+//        btnVirtualOrientation.setOnClickListener(this);
+//        btnVoFinder.setOnClickListener(this);
     }
 
     @Override
@@ -51,8 +59,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_settings:
-                // TODO: Remove log
-                Log.d(LOG_TAG, "settings");
                 Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
                 startActivity(intent);
                 break;
@@ -72,11 +78,25 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 intent = new Intent(MainActivity.this, FinderActivity.class);
                 break;
 
+            case R.id.btn_finder_ex:
+                Log.d(LOG_TAG, "btn_finder_ex");
+                intent = new Intent(MainActivity.this, FinderExActivity.class);
+                break;
+
             case R.id.btn_logger:
                 Log.d(LOG_TAG, "btn_logger");
                 intent = new Intent(MainActivity.this, LoggerActivity.class);
                 break;
 
+//            case R.id.btn_virtual_orientation:
+//                Log.d(LOG_TAG, "btn_virtual_orientation");
+//                intent = new Intent(MainActivity.this, VirtualOLoggerActivity.class);
+//                break;
+//
+//            case R.id.btn_vo_finder:
+//                Log.d(LOG_TAG, "btn_vo_finder");
+//                intent = new Intent(MainActivity.this, VirtualOFinderActivity.class);
+//                break;
             default:
                 intent = new Intent(MainActivity.this, LoggerActivity.class);
                 break;
