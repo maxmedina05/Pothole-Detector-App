@@ -27,8 +27,8 @@ public class VirtualOFinderActivity extends VirtualOLoggerActivity {
     // Analyzer
     private PotholeDataFrame mDataFrame;
     private boolean defectFound = false;
-    private float stime = 0;
-    private float ctime = 0;
+    private float finderStartTime = 0;
+    private float finderCurrentTime = 0;
 
     // Debugger fields
     private BufferedReader mReader;
@@ -101,8 +101,8 @@ public class VirtualOFinderActivity extends VirtualOLoggerActivity {
     protected void onVirtualAccelChanged(float[] accel) {
 
         mDataFrame.addRow(new AccData(accel[0], accel[1], accel[2], accel[3]));
-        ctime = accel[3];
-        float deltaTime = ctime - stime;
+        finderCurrentTime = accel[3];
+        float deltaTime = finderCurrentTime - finderStartTime;
 
         // wait for cooldown delay
         if (defectFound) {
@@ -114,16 +114,16 @@ public class VirtualOFinderActivity extends VirtualOLoggerActivity {
         }
 
         // don't start working until it has enough data
-        if (ctime > winSize) {
-            new FinderTask(stime, ctime).execute(mDataFrame.clone());
+        if (finderCurrentTime > winSize) {
+            new FinderTask(finderStartTime, finderCurrentTime).execute(mDataFrame.clone());
         }
-        stime = ctime;
+        finderStartTime = finderCurrentTime;
     }
 
     private void PdAlgorithm(float timestamp, float x, float y, float z) {
         mDataFrame.addRow(new AccData(x, y, z, timestamp));
-        ctime = timestamp;
-        float deltaTime = ctime - stime;
+        finderCurrentTime = timestamp;
+        float deltaTime = finderCurrentTime - finderStartTime;
 
         // wait for cooldown delay
         if (defectFound) {
@@ -131,19 +131,19 @@ public class VirtualOFinderActivity extends VirtualOLoggerActivity {
                 return;
             } else {
                 defectFound = false;
-                stime = ctime;
+                finderStartTime = finderCurrentTime;
             }
         }
 
         // don't start working until it has enough data
-        if (ctime <= winSize) {
+        if (finderCurrentTime <= winSize) {
             return;
         }
 
         if (deltaTime >= smWinSize) {
-            PotholeDataFrame oneWin = mDataFrame.query(ctime - winSize, ctime);
-            PotholeDataFrame win = oneWin.query(ctime - winSize, ctime - smWinSize);
-            PotholeDataFrame smWin = oneWin.query(ctime - smWinSize, ctime);
+            PotholeDataFrame oneWin = mDataFrame.query(finderCurrentTime - winSize, finderCurrentTime);
+            PotholeDataFrame win = oneWin.query(finderCurrentTime - winSize, finderCurrentTime - smWinSize);
+            PotholeDataFrame smWin = oneWin.query(finderCurrentTime - smWinSize, finderCurrentTime);
 
             float one_x_mean = (float) oneWin.computeMean(Defect.Axis.AXIS_X);
             float one_x_std = (float) oneWin.computeStd(Defect.Axis.AXIS_X, one_x_mean);
@@ -155,7 +155,7 @@ public class VirtualOFinderActivity extends VirtualOLoggerActivity {
             sm_z_std = (float) MathHelper.round(sm_z_std, AppSettings.NDIGITS);
 
             if (one_x_std < x_std_thresh || sm_z_std < z_std_thresh) {
-                stime = ctime;
+                finderStartTime = finderCurrentTime;
                 return;
             }
 
@@ -168,10 +168,10 @@ public class VirtualOFinderActivity extends VirtualOLoggerActivity {
             if (z_max >= thresh) {
                 defectFound = true;
                 // TODO: add gps coor
-//                onDefectFound(oneWin, win, smWin, stime, ctime, 0, 0);
-                onDefectFound(stime, ctime, 0, 0);
+//                onDefectFound(oneWin, win, smWin, finderStartTime, finderCurrentTime, 0, 0);
+                onDefectFound(finderStartTime, finderCurrentTime, 0, 0);
             }
-            stime = ctime;
+            finderStartTime = finderCurrentTime;
         }
     }
 
