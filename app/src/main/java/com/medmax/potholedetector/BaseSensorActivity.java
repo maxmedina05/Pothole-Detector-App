@@ -41,12 +41,13 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
 
     // Sensor Variables
     protected volatile float[] mRawAccelerometerValues = new float[3];
+    protected volatile float[] mRawMagneticValues = new float[3];
     protected float mCarMovingSpeed = 0;
     protected float lastLongitude = 0;
     protected float lastLatitude = 0;
 
     private GPSManager mGPSManager;
-    private SensorManager mSensorManager;
+    protected SensorManager mSensorManager;
     private Sensor mAccelerometerSensor;
 
     // Preferences
@@ -108,6 +109,9 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
             case Sensor.TYPE_ACCELEROMETER:
                 onAccelerometerSensorChanged(event.values);
                 break;
+            case Sensor.TYPE_MAGNETIC_FIELD:
+                onMagneticSensorChanged(event.values);
+                break;
         }
     }
 
@@ -163,6 +167,10 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     protected void onAccelerometerSensorChanged(float[] values) {
         mFrequencyCalculator.calculateFrequency();
         System.arraycopy(values, 0, mRawAccelerometerValues, 0, values.length);
+    }
+
+    protected void onMagneticSensorChanged(float[] values) {
+        System.arraycopy(values, 0, mRawMagneticValues, 0, values.length);
     }
 
     protected void updateUI() {

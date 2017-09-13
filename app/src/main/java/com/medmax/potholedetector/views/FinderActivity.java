@@ -255,7 +255,6 @@ public class FinderActivity extends LoggerActivity {
                 defectFound = true;
                 finderObject.setDefectFound(true);
             }
-
             return finderObject;
         }
 
@@ -268,6 +267,4 @@ public class FinderActivity extends LoggerActivity {
             }
         }
     }
-
-
 }
