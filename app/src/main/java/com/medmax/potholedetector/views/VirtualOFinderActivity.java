@@ -51,9 +51,9 @@ public class VirtualOFinderActivity extends VirtualOLoggerActivity {
     protected void onAccelerometerSensorChanged(float[] values) {
         super.onAccelerometerSensorChanged(values);
 
-        float x = mVirtualAccelerationValues[0];
-        float y = mVirtualAccelerationValues[1];
-        float z = mVirtualAccelerationValues[2];
+        float x = mVirtualAccelerationValues[0] / AppSettings.GRAVITY_CONSTANT;
+        float y = mVirtualAccelerationValues[1] / AppSettings.GRAVITY_CONSTANT;
+        float z = mVirtualAccelerationValues[2] / AppSettings.GRAVITY_CONSTANT;
         float timestamp = mTimestamp;
 
         if(isLogging) {

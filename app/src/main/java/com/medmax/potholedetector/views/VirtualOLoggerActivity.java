@@ -81,7 +81,7 @@ public class VirtualOLoggerActivity extends BaseSensorActivity {
                 System.arraycopy(vrm, 0, mVirtualAccelerationValues, 0, vrm.length);
             }
 
-            new LogTask(++mIdSeed, mTimestamp, mRawAccelerometerValues).execute();
+            new LogTask(++mIdSeed, mTimestamp, mVirtualAccelerationValues).execute();
         }
     }
 
