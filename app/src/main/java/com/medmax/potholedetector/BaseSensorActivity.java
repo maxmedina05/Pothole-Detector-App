@@ -34,6 +34,7 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     public static final String LOG_TAG = BaseSensorActivity.class.getSimpleName();
 
     // Variables
+    protected char mGravityAxis = 'Y';
     protected float mTimestamp = 0;
     protected String mDeviceName = "";
     protected String defectFoundMsg = "";
@@ -60,7 +61,10 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     protected TextView tvAxisY;
     protected TextView tvAxisZ;
     protected TextView tvSpeed;
+    protected TextView tvGravity;
+
     protected ToggleButton btnLog;
+
 
     // Multi thread
     private Handler mHandler;
@@ -150,6 +154,7 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     private void setupUIComponents() {
         tvTimestamp = (TextView) findViewById(R.id.tv_timestamp);
         tvSpeed = (TextView) findViewById(R.id.tv_speed);
+        tvGravity = (TextView) findViewById(R.id.tv_gravity);
         tvFrequency = (TextView) findViewById(R.id.tv_frequency);
         tvAxisX = (TextView) findViewById(R.id.tv_x_axis);
         tvAxisY = (TextView) findViewById(R.id.tv_y_axis);
@@ -181,6 +186,7 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
         tvFrequency.setText(String.format(Locale.US, "%.1f hz", mFrequencyCalculator.getFqHz()));
         tvTimestamp.setText(String.format(Locale.US, "timestamp: %.3f s", mTimestamp));
         tvSpeed.setText(String.format(Locale.US, "speed: %.2f m/s", mCarMovingSpeed));
+        tvGravity.setText(String.format(Locale.US, "gravity: %c", mGravityAxis));
     }
 
     protected void sendToast(String message) {

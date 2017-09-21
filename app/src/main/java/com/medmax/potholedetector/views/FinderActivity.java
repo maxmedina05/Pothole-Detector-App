@@ -95,6 +95,26 @@ public class FinderActivity extends LoggerActivity {
         float x = values[0];
         float y = values[1];
         float z = values[2];
+
+
+        // X is Gravity Axis
+        if(values[0] > 9) {
+            mGravityAxis = 'X';
+            x = values[1];
+            y = values[2];
+            z = values[0];
+        // Y is Gravity Axis
+        } else if(values[1] > 9) {
+            mGravityAxis = 'Y';
+            z = values[1];
+            y = values[2];
+
+        }
+        // Z is Gravity Axis
+        else if (values[2] > 9) {
+            mGravityAxis = 'Z';
+        }
+
         float timestamp = mTimestamp;
 
         if(isLogging && mPreferenceManager.isDebuggerOn()) {
