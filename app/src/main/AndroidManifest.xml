@@ -26,6 +26,7 @@
         <activity android:name=".views.FinderExActivity" android:screenOrientation="portrait"/>
         <activity android:name=".views.VirtualOLoggerActivity" android:screenOrientation="portrait"/>
         <activity android:name=".views.VirtualOFinderActivity" android:screenOrientation="portrait"/>
+        <activity android:name=".views.UploadDefectActivity" android:screenOrientation="portrait"/>
         <activity android:name=".views.SettingsActivity"/>
 
     </application>

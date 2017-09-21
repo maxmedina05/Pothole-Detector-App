@@ -58,7 +58,7 @@ public class LoggerActivity extends BaseSensorActivity {
         if(isLogging) {
             mTimestamp = (System.currentTimeMillis() - mLogStartTime) / 1000.0f;
 
-            new LogTask(++mIdSeed, mTimestamp, mRawAccelerometerValues).execute();
+            new LogTask(++mIdSeed, mTimestamp, mRawAccelerometerValues, lastLatitude, lastLongitude).execute();
         }
     }
 
@@ -96,18 +96,20 @@ public class LoggerActivity extends BaseSensorActivity {
         }
     }
 
-    private synchronized void logData(float timestamp, long logId, float[] data) throws IOException {
+    private synchronized void logData(float timestamp, long logId, float[] data, float latitude, float longitude) throws IOException {
         if (csvHelper.isOpen()) {
             csvHelper.write(String.format(
                     Locale.US,
-                    "%d,%s,%s,%.06f,%.6f,%.6f,%.6f",
+                    "%d,%s,%s,%.06f,%.6f,%.6f,%.6f,%f,%f",
                     logId,
                     DateTimeHelper.getCurrentDateTime("yyyy-MM-dd hh:mm:ss.SSS"),
                     mDeviceName,
                     timestamp,
                     data[0],
                     data[1],
-                    data[2])
+                    data[2],
+                    latitude,
+                    longitude)
             );
         }
     }
@@ -115,18 +117,23 @@ public class LoggerActivity extends BaseSensorActivity {
     private class LogTask extends AsyncTask<Void, Void, Integer> {
         private long logId;
         private float timeStamp;
+        private float latitude;
+        private float longitude;
+
         private float[] data;
 
-        LogTask(long logId, float timeStamp, float[] data) {
+        LogTask(long logId, float timeStamp, float[] data, float latitude, float longitude) {
             this.logId = logId;
             this.timeStamp = timeStamp;
             this.data = data;
+            this.latitude = latitude;
+            this.longitude = longitude;
         }
 
         @Override
         protected Integer doInBackground(Void... params) {
             try {
-                logData(timeStamp, logId, data);
+                logData(timeStamp, logId, data, latitude, longitude);
             } catch (IOException e) {
                 e.printStackTrace();
             }

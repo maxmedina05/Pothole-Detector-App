@@ -24,7 +24,9 @@ public class PotholeCSVContract {
                     "Timestamp",
                     "X-Axis",
                     "Y-Axis",
-                    "Z-Axis"
+                    "Z-Axis",
+                    "Latitude",
+                    "Longitude"
             };
         }
     }

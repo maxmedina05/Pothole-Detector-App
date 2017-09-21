@@ -46,10 +46,10 @@
         <!--android:text="Virtual Orientation"/>-->
 
     <Button
-        android:id="@+id/btn_vo_finder"
+        android:id="@+id/btn_upload"
         android:layout_width="160dp"
         android:layout_height="64dp"
         android:layout_gravity="center_horizontal"
         android:layout_marginTop="16dp"
-        android:text="VO Finder"/>
+        android:text="Upload Defect"/>
 </LinearLayout>
