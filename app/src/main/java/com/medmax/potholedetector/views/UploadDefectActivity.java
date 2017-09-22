@@ -21,7 +21,9 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
 import com.medmax.potholedetector.R;
+import com.medmax.potholedetector.models.StreetDefect;
 import com.medmax.potholedetector.services.GPSManager;
+import com.medmax.potholedetector.services.HttpService;
 import com.medmax.potholedetector.services.OnGPSUpdateListener;
 
 import org.json.JSONException;
@@ -40,10 +42,7 @@ public class UploadDefectActivity extends Activity implements OnGPSUpdateListene
     private TextView tvLongitude;
     private Button btnUpload;
     private GPSManager mGPSManager;
-
-    private String mAPIBaseUrl = "";
-
-    private RequestQueue queue;
+    private HttpService mHttpService;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -58,14 +57,8 @@ public class UploadDefectActivity extends Activity implements OnGPSUpdateListene
         mGPSManager.setOnGPSUpdateListener(this);
         btnUpload.setOnClickListener(this);
 
-        SharedPreferences sharedPrefs = android.preference.PreferenceManager
-                .getDefaultSharedPreferences(this);
-
-        String url = sharedPrefs.getString(getString(R.string.pref_api_url), "52.168.3.123");
-        mAPIBaseUrl = String.format("http://%s:5099/api/street-defects", url);
-        Log.d(this.getClass().getSimpleName(), mAPIBaseUrl);
-
-        queue = Volley.newRequestQueue(this);
+        mHttpService = new HttpService();
+        mHttpService.init(this);
     }
 
     @Override
@@ -91,26 +84,12 @@ public class UploadDefectActivity extends Activity implements OnGPSUpdateListene
 
     @Override
     public void onClick(View v) {
+        StreetDefect streetDefect = new StreetDefect();
+        streetDefect.setDeviceName(Build.MANUFACTURER + " " + Build.MODEL);
+        streetDefect.setLatitude(mLastKnownLatitude);
+        streetDefect.setLongitude(mLastKnownLongitude);
 
-        JSONObject body = new JSONObject();
-        try {
-            body.put("deviceName", Build.MANUFACTURER + " " + Build.MODEL);
-            body.put("latitude", Float.toString(mLastKnownLatitude));
-            body.put("longitude", Float.toString(mLastKnownLongitude));
-
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-        JsonObjectRequest postRequest = new JsonObjectRequest(
-                Request.Method.POST,
-                mAPIBaseUrl,
-                body,
-                this,
-                this
-        );
-
-        queue.add(postRequest);
+        mHttpService.postStreetDefect(streetDefect, this, this);
     }
 
     @Override

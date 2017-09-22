@@ -6,12 +6,20 @@ import android.os.Environment;
 import android.support.annotation.Nullable;
 import android.util.Log;
 import android.view.View;
+import android.widget.Toast;
 
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
 import com.medmax.potholedetector.config.AppSettings;
 import com.medmax.potholedetector.data.analyzer.PotholeDataFrame;
 import com.medmax.potholedetector.models.AccData;
 import com.medmax.potholedetector.models.Defect;
+import com.medmax.potholedetector.models.StreetDefect;
+import com.medmax.potholedetector.services.HttpService;
 import com.medmax.potholedetector.utilities.MathHelper;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -23,7 +31,7 @@ import java.io.IOException;
  * Created by Max Medina on 2017-07-06.
  */
 
-public class FinderActivity extends LoggerActivity {
+public class FinderActivity extends LoggerActivity implements Response.Listener<JSONObject>, Response.ErrorListener {
     // Constants
     public final static String LOG_TAG = FinderActivity.class.getSimpleName();
 
@@ -37,11 +45,16 @@ public class FinderActivity extends LoggerActivity {
     // Debugger fields
     private BufferedReader mReader;
 
+    // Services
+    private HttpService mHttpService;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         mDataFrame = new PotholeDataFrame();
+        mHttpService = new HttpService();
+        mHttpService.init(this);
     }
 
     @Override
@@ -95,7 +108,6 @@ public class FinderActivity extends LoggerActivity {
         float x = values[0];
         float y = values[1];
         float z = values[2];
-
 
         // X is Gravity Axis
         if(values[0] > 9) {
@@ -178,19 +190,37 @@ public class FinderActivity extends LoggerActivity {
         sendToast(defectFoundMsg);
     }
 
+    @Override
+    public void onErrorResponse(VolleyError error) {
+        Log.e(LOG_TAG, "response: " + error.toString());
+    }
+
+    @Override
+    public void onResponse(JSONObject response) {
+        Log.d(LOG_TAG, "response: " + response.toString());
+
+        try {
+            Toast.makeText(this.getApplicationContext(), response.get("message").toString(), Toast.LENGTH_SHORT).show();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
     private class FinderObject {
         private float startTime;
         private float currentTime;
         private float latitude;
         private float longitude;
         private boolean defectFound;
+        private StreetDefect streetDefect;
 
-        public FinderObject(float startTime, float currentTime, float latitude, float longitude, boolean defectFound) {
+        public FinderObject(float startTime, float currentTime, float latitude, float longitude, boolean defectFound, StreetDefect streetDefect) {
             this.startTime = startTime;
             this.currentTime = currentTime;
             this.defectFound = defectFound;
             this.latitude = latitude;
             this.longitude = longitude;
+            this.streetDefect = streetDefect;
         }
 
         public float getStartTime() {
@@ -224,6 +254,10 @@ public class FinderActivity extends LoggerActivity {
         public void setLongitude(float longitude) {
             this.longitude = longitude;
         }
+
+        public StreetDefect getStreetDefect() {
+            return streetDefect;
+        }
     }
 
     private class FinderTask extends AsyncTask<PotholeDataFrame, Integer, FinderObject> {
@@ -241,7 +275,9 @@ public class FinderActivity extends LoggerActivity {
 
         @Override
         protected FinderObject doInBackground(PotholeDataFrame... params) {
-            FinderObject finderObject = new FinderObject(startTime, currentTime, latitude, longitude, false);
+            StreetDefect streetDefect = new StreetDefect();
+            FinderObject finderObject = new FinderObject(startTime, currentTime, latitude, longitude, false, streetDefect);
+
             float winSize = mPreferenceManager.getWinSize();
             float smWinSize = mPreferenceManager.getSmWinSize();
 
@@ -275,6 +311,22 @@ public class FinderActivity extends LoggerActivity {
                 defectFound = true;
                 finderObject.setDefectFound(true);
             }
+
+            double one_y_std = oneWin.computeMean(Defect.Axis.AXIS_Y);
+            double one_z_std = oneWin.computeMean(Defect.Axis.AXIS_Z);
+
+            streetDefect.setDeviceName(mDeviceName);
+            streetDefect.setLatitude(lastLatitude);
+            streetDefect.setLongitude(lastLongitude);
+
+            streetDefect.setxMean(one_x_mean);
+            streetDefect.setyMean((float) one_y_std);
+            streetDefect.setyMean((float) one_z_std);
+
+            streetDefect.setxStd(one_x_std);
+            streetDefect.setxStd((float) oneWin.computeStd(Defect.Axis.AXIS_Y, one_y_std));
+            streetDefect.setxStd((float) oneWin.computeStd(Defect.Axis.AXIS_Z, one_z_std));
+
             return finderObject;
         }
 
@@ -284,6 +336,7 @@ public class FinderActivity extends LoggerActivity {
 //                sendToast(defectFoundMsg);
                 onDefectFound(df.getStartTime(), df.getCurrentTime(), df.getLongitude(), df.getLatitude());
                 Log.d(LOG_TAG, String.format("A defect was found between ti: %.4f and tf: %.4f", df.getStartTime(), df.getCurrentTime()));
+                mHttpService.postStreetDefect(df.getStreetDefect(), FinderActivity.this, FinderActivity.this);
             }
         }
     }
