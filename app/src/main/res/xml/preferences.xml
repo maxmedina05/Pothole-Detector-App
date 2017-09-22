@@ -61,4 +61,13 @@
         android:title="Debugger Mode"
         android:summary="read accelerometer data from Downloads/mock-dataset.csv"
         android:defaultValue="false" />
+
+    <EditTextPreference
+        android:defaultValue="52.168.3.123"
+        android:key="@string/pref_api_url"
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:inputType=""
+        android:summary="API base url"
+        android:title="API Base Url"/>
 </PreferenceScreen>

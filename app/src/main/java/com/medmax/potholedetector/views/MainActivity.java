@@ -97,10 +97,10 @@ public class MainActivity extends Activity implements View.OnClickListener {
 //                intent = new Intent(MainActivity.this, VirtualOLoggerActivity.class);
 //                break;
 //
-            case R.id.btn_vo_finder:
-                Log.d(LOG_TAG, "btn_vo_finder");
-                intent = new Intent(MainActivity.this, VirtualOFinderActivity.class);
-                break;
+//            case R.id.btn_vo_finder:
+//                Log.d(LOG_TAG, "btn_vo_finder");
+//                intent = new Intent(MainActivity.this, VirtualOFinderActivity.class);
+//                break;
             case R.id.btn_upload:
                 Log.d(LOG_TAG, "btn_upload");
                 intent = new Intent(MainActivity.this, UploadDefectActivity.class);
