@@ -25,5 +25,7 @@ public class AppSettings {
 
     public static final int SAMPLING_RATE = SensorManager.SENSOR_DELAY_FASTEST;
     public static final int UPDATE_UI_DELAY = 100;
+
+    public static final String PREFERENCE_FILE_KEY = "com.medmax.potholedetector.preference_file_key";
 }
 

@@ -28,6 +28,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 //    Button btnVirtualOrientation;
     Button btnVoFinder;
     Button btnUpload;
+    Button btnSignIn;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -43,6 +44,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 //        btnVirtualOrientation = (Button) findViewById(R.id.btn_virtual_orientation);
 //        btnVoFinder = (Button) findViewById(R.id.btn_vo_finder);
         btnUpload = (Button) findViewById(R.id.btn_upload);
+        btnSignIn = (Button) findViewById(R.id.btn_sign_in);
 
         btnLogger.setOnClickListener(this);
         btnFinder.setOnClickListener(this);
@@ -50,6 +52,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 //        btnVirtualOrientation.setOnClickListener(this);
 //        btnVoFinder.setOnClickListener(this);
         btnUpload.setOnClickListener(this);
+        btnSignIn.setOnClickListener(this);
     }
 
     @Override
@@ -104,6 +107,11 @@ public class MainActivity extends Activity implements View.OnClickListener {
             case R.id.btn_upload:
                 Log.d(LOG_TAG, "btn_upload");
                 intent = new Intent(MainActivity.this, UploadDefectActivity.class);
+                break;
+
+            case R.id.btn_sign_in:
+                Log.d(LOG_TAG, "btn_sign_in");
+                intent = new Intent(MainActivity.this, SignInActivity.class);
                 break;
             default:
                 intent = new Intent(MainActivity.this, LoggerActivity.class);

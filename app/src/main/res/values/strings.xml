@@ -20,6 +20,10 @@
     <string name="defect_found">A defect was found!</string>
     <string name="pref_cooldown_time">pref_cooldown_time</string>
     <string name="pref_api_url">pref_api_url</string>
+    <string name="server_client_id">238180417493-rt7vceimdfi6n10do1kqmf04nle1fcjo.apps.googleusercontent.com</string>
+    <string name="preference_token">preference_token</string>
+    <string name="saved_token_id">saved_token_id</string>
+    <string name="saved_user_id">saved_user_id</string>
 
     <string-array name="pref_algorithm_list">
         <item>@string/z_thresh_algorithm</item>
