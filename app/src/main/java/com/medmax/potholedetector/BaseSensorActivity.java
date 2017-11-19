@@ -2,6 +2,7 @@ package com.medmax.potholedetector;
 
 import android.app.Activity;
 import android.content.Context;
+import android.hardware.GeomagneticField;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -11,6 +12,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.Nullable;
+import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -46,6 +48,7 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     protected float mCarMovingSpeed = 0;
     protected float lastLongitude = 0;
     protected float lastLatitude = 0;
+    protected Location previousLocation = null;
 
     private GPSManager mGPSManager;
     protected SensorManager mSensorManager;
@@ -64,7 +67,6 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
     protected TextView tvGravity;
 
     protected ToggleButton btnLog;
-
 
     // Multi thread
     private Handler mHandler;
@@ -129,10 +131,11 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
         if (location.hasSpeed()) {
             mCarMovingSpeed = location.getSpeed() * AppSettings.SPEED_CONSTANT;
         }
-
         lastLatitude = (float) location.getLatitude();
         lastLongitude = (float) location.getLongitude();
+        previousLocation = location;
     }
+
 
     // Sensor Methods
     protected void setUILayout() {
@@ -176,6 +179,20 @@ public abstract class BaseSensorActivity extends Activity implements View.OnClic
 
     protected void onMagneticSensorChanged(float[] values) {
         System.arraycopy(values, 0, mRawMagneticValues, 0, values.length);
+
+        if(mRawAccelerometerValues != null && mRawMagneticValues != null ){
+            float R[] = new float[9];
+            float I[] = new float[9];
+
+            if(SensorManager.getRotationMatrix(R, I, mRawAccelerometerValues, mRawMagneticValues)) {
+                float orientation[] = new float[3];
+                SensorManager.getOrientation(R, orientation);
+
+                float azimut = orientation[0];
+                float rotation = (float) (-azimut * 360 / (2 * Math.PI));
+                Log.d(LOG_TAG, String.format("rotation: %f", rotation));
+            }
+        }
     }
 
     protected void updateUI() {

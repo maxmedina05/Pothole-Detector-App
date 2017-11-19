@@ -62,6 +62,11 @@
         android:summary="read accelerometer data from Downloads/mock-dataset.csv"
         android:defaultValue="false" />
 
+    <CheckBoxPreference
+        android:key="@string/pref_is_compare_x_z"
+        android:title="Compare MaxX MinZ FT"
+        android:defaultValue="false" />
+
     <EditTextPreference
         android:defaultValue="52.168.3.123"
         android:key="@string/pref_api_url"

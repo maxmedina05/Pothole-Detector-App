@@ -9,6 +9,8 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
 
 import com.google.android.gms.auth.api.Auth;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
@@ -17,6 +19,8 @@ import com.google.android.gms.auth.api.signin.GoogleSignInResult;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.SignInButton;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.common.api.Status;
 import com.medmax.potholedetector.R;
 import com.medmax.potholedetector.config.AppSettings;
 
@@ -30,6 +34,9 @@ public class SignInActivity extends FragmentActivity implements View.OnClickList
 
     private GoogleApiClient mGoogleApiClient;
     private SignInButton signInButton;
+
+    private TextView displayNameTextView;
+    private Button signOutButton;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -47,8 +54,11 @@ public class SignInActivity extends FragmentActivity implements View.OnClickList
                 .build();
 
         signInButton = (SignInButton) findViewById(R.id.sign_in_button);
-        signInButton.setSize(SignInButton.SIZE_STANDARD);
         signInButton.setOnClickListener(this);
+
+        displayNameTextView =  (TextView) findViewById(R.id.display_name_text_view);
+        signOutButton = (Button) findViewById(R.id.sign_out_button);
+        signOutButton.setOnClickListener(this);
     }
 
     @Override
@@ -58,7 +68,23 @@ public class SignInActivity extends FragmentActivity implements View.OnClickList
 
     @Override
     public void onClick(View v) {
-        signIn();
+
+        switch (v.getId()) {
+            case R.id.sign_in_button:
+                signIn();
+                break;
+            case R.id.sign_out_button:
+                signOut();
+        }
+    }
+
+    private void signOut() {
+        Auth.GoogleSignInApi.signOut(mGoogleApiClient).setResultCallback(new ResultCallback<Status>() {
+            @Override
+            public void onResult(@NonNull Status status) {
+                updateUI(null);
+            }
+        });
     }
 
     private void signIn() {
@@ -89,6 +115,16 @@ public class SignInActivity extends FragmentActivity implements View.OnClickList
             SharedPreferences.Editor editor = sharedPref.edit();
             editor.putString(getString(R.string.saved_token_id), token);
             editor.commit();
+
+            updateUI(acct.getDisplayName());
+        }
+    }
+
+    private void updateUI(String displayName) {
+        if(displayName != null) {
+            displayNameTextView.setText(String.format("Hello, %s", displayName));
+        } else {
+            displayNameTextView.setText("Please sign in");
         }
     }
 

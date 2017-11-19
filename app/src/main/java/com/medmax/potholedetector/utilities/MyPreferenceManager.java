@@ -21,7 +21,9 @@ public class MyPreferenceManager {
     private float xStdThresh = 0.10f;
     private float coolDownTime = AppSettings.COOLDOWN_TIME;
 
+
     // Debugger
+    private boolean isCompareMaxXMinZ_FT = false;
     private boolean isDebuggerOn = false;
 
     private MyPreferenceManager() {
@@ -58,6 +60,9 @@ public class MyPreferenceManager {
         key = resources.getString(R.string.pref_debugger_mode);
         isDebuggerOn = sharedPrefs.getBoolean(key, false);
 
+        key = resources.getString(R.string.pref_is_compare_x_z);
+        isCompareMaxXMinZ_FT = sharedPrefs.getBoolean(key, false);
+
         key = resources.getString(R.string.pref_cooldown_time);
         coolDownTime = Float.parseFloat(sharedPrefs.getString(key, String.valueOf(AppSettings.COOLDOWN_TIME)));
     }
@@ -66,55 +71,31 @@ public class MyPreferenceManager {
         return winSize;
     }
 
-    public void setWinSize(float winSize) {
-        this.winSize = winSize;
-    }
-
     public float getSmWinSize() {
         return smWinSize;
-    }
-
-    public void setSmWinSize(float smWinSize) {
-        this.smWinSize = smWinSize;
     }
 
     public float getK() {
         return K;
     }
 
-    public void setK(float k) {
-        K = k;
-    }
-
     public float getzStdThresh() {
         return zStdThresh;
-    }
-
-    public void setzStdThresh(float zStdThresh) {
-        this.zStdThresh = zStdThresh;
     }
 
     public float getxStdThresh() {
         return xStdThresh;
     }
 
-    public void setxStdThresh(float xStdThresh) {
-        this.xStdThresh = xStdThresh;
-    }
-
     public float getCoolDownTime() {
         return coolDownTime;
-    }
-
-    public void setCoolDownTime(float coolDownTime) {
-        this.coolDownTime = coolDownTime;
     }
 
     public boolean isDebuggerOn() {
         return isDebuggerOn;
     }
 
-    public void setDebuggerOn(boolean debuggerOn) {
-        isDebuggerOn = debuggerOn;
+    public boolean isCompareMaxXMinZ_FT() {
+        return isCompareMaxXMinZ_FT;
     }
 }

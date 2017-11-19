@@ -1,58 +1,195 @@
 package com.medmax.potholedetector.views;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.NotificationManager;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
+import android.widget.ToggleButton;
 import android.widget.Toolbar;
+import android.Manifest;
 
+import com.google.android.gms.auth.api.Auth;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.auth.api.signin.GoogleSignInResult;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.SignInButton;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.common.api.Status;
 import com.medmax.potholedetector.R;
+import com.medmax.potholedetector.config.AppSettings;
+import com.medmax.potholedetector.services.StreetDefectDetectorService;
+
+import java.util.ArrayList;
+import java.util.List;
+
 
 /**
- *  Max Medina
+ * Created by Max Medina on 2017-10-17.
  */
-public class MainActivity extends Activity implements View.OnClickListener {
 
-    public static final String LOG_TAG = MainActivity.class.getSimpleName();
+public class MainActivity extends FragmentActivity implements View.OnClickListener, GoogleApiClient.OnConnectionFailedListener {
 
-    // UI Components
-    Button btnLogger;
-    Button btnFinder;
-    Button btnFinderEx;
-//    Button btnVirtualOrientation;
-    Button btnVoFinder;
-    Button btnUpload;
-    Button btnSignIn;
+    public static String LOG_TAG = MainActivity.class.getSimpleName();
+
+    private static final int RC_SIGN_IN = 9001;
+    private static final int MY_PERMISSIONS_REQUEST_ACCOUNTS = 100;
+
+    private boolean isServiceRunning = false;
+    private GoogleApiClient mGoogleApiClient;
+
+    private TextView displayNameTextView;
+    private SignInButton signInButton;
+    private Button logoutButton;
+    private ToggleButton toggleButton;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
-        Toolbar myToolbar = (Toolbar) findViewById(R.id.my_toolbar);
-        setActionBar(myToolbar);
+        Toolbar toolbar = (Toolbar) findViewById(R.id.my_toolbar);
+        toggleButton = (ToggleButton) findViewById(R.id.pothole_detector_toggle);
+        displayNameTextView = (TextView) findViewById(R.id.display_name_text_view);
+        logoutButton = (Button) findViewById(R.id.sign_out_button);
+        signInButton = (SignInButton) findViewById(R.id.sign_in_button);
 
-        btnLogger = (Button)findViewById(R.id.btn_logger);
-        btnFinder = (Button)findViewById(R.id.btn_finder);
-        btnFinderEx = (Button)findViewById(R.id.btn_finder_ex);
-//        btnVirtualOrientation = (Button) findViewById(R.id.btn_virtual_orientation);
-//        btnVoFinder = (Button) findViewById(R.id.btn_vo_finder);
-        btnUpload = (Button) findViewById(R.id.btn_upload);
-        btnSignIn = (Button) findViewById(R.id.btn_sign_in);
+        setActionBar(toolbar);
+        signInButton.setOnClickListener(this);
+        logoutButton.setOnClickListener(this);
+        toggleButton.setOnClickListener(this);
 
-        btnLogger.setOnClickListener(this);
-        btnFinder.setOnClickListener(this);
-        btnFinderEx.setOnClickListener(this);
-//        btnVirtualOrientation.setOnClickListener(this);
-//        btnVoFinder.setOnClickListener(this);
-        btnUpload.setOnClickListener(this);
-        btnSignIn.setOnClickListener(this);
+        if(!checkAndRequestPermissions()) {
+            this.finish();
+        }
+
+        setupGoogleOauth2();
+    }
+
+    private void setupGoogleOauth2() {
+        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestEmail()
+                .requestIdToken(getString(R.string.server_client_id))
+                .build();
+
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .enableAutoManage(this, this)
+                .addApi(Auth.GOOGLE_SIGN_IN_API, gso)
+                .build();
+
+    }
+
+    private void signOut() {
+        Auth.GoogleSignInApi.signOut(mGoogleApiClient).setResultCallback(new ResultCallback<Status>() {
+            @Override
+            public void onResult(@NonNull Status status) {
+                updateLoginButtons(false);
+            }
+        });
+    }
+
+    private void signIn() {
+        Intent signInIntent = Auth.GoogleSignInApi.getSignInIntent(mGoogleApiClient);
+        startActivityForResult(signInIntent, RC_SIGN_IN);
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        // Result returned from launching the Intent from GoogleSignInApi.getSignInIntent(...);
+        if (requestCode == RC_SIGN_IN) {
+            GoogleSignInResult result = Auth.GoogleSignInApi.getSignInResultFromIntent(data);
+            handleSignInResult(result);
+        }
+    }
+
+    private void handleSignInResult(GoogleSignInResult result) {
+        if (result.isSuccess()) {
+            // Signed in successfully, show authenticated UI.
+            GoogleSignInAccount acct = result.getSignInAccount();
+            String token = null;
+            if (acct != null) {
+                displayNameTextView.setText(String.format("Hello %s!", acct.getDisplayName()));
+                token = acct.getIdToken();
+                Log.d(LOG_TAG, token);
+
+                SharedPreferences sharedPref = this.getSharedPreferences(AppSettings.PREFERENCE_FILE_KEY, Context.MODE_PRIVATE);
+                SharedPreferences.Editor editor = sharedPref.edit();
+                editor.putString(getString(R.string.saved_token_id), token);
+                editor.commit();
+                updateLoginButtons(true);
+            }
+        } else {
+            this.finish();
+        }
+    }
+
+    private boolean checkAndRequestPermissions() {
+        int locationPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
+        int writePermission = ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+
+        List<String> permissionsNeeded = new ArrayList<>();
+
+        if (locationPermission != PackageManager.PERMISSION_GRANTED) {
+            permissionsNeeded.add(Manifest.permission.ACCESS_FINE_LOCATION);
+        }
+        if (writePermission != PackageManager.PERMISSION_GRANTED) {
+            permissionsNeeded.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        }
+
+        if (!permissionsNeeded.isEmpty()) {
+            ActivityCompat.requestPermissions(this,
+                    permissionsNeeded.toArray(
+                            new String[permissionsNeeded.size()]),
+                    MY_PERMISSIONS_REQUEST_ACCOUNTS);
+        }
+
+        return true;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case MY_PERMISSIONS_REQUEST_ACCOUNTS:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                    //Permission Granted Successfully. Write working code here.
+                } else {
+                    //You did not accept the request can not use the functionality.
+                    AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                    builder.setTitle("NO PERMISSION");
+                    builder.setMessage("The app will not work if the required permissions are not enabled!");
+                    builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                        @Override
+                        public void onDismiss(DialogInterface dialog) {
+                            MainActivity.this.finish();
+                        }
+                    });
+                    AlertDialog dialog = builder.create();
+                    dialog.show();
+                }
+                break;
+        }
     }
 
     @Override
@@ -66,7 +203,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_settings:
-                Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
+                Intent intent = new Intent(getApplicationContext(), SettingsActivity.class);
                 startActivity(intent);
                 break;
         }
@@ -76,49 +213,55 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     @Override
     public void onClick(View v) {
-
-        Intent intent;
-        switch (v.getId()){
-
-            case R.id.btn_finder:
-                Log.d(LOG_TAG, "btn_finder");
-                intent = new Intent(MainActivity.this, FinderActivity.class);
+        switch (v.getId()) {
+            case R.id.pothole_detector_toggle:
+                onPotholeDetectorToggleClicked();
                 break;
-
-            case R.id.btn_finder_ex:
-                Log.d(LOG_TAG, "btn_finder_ex");
-                intent = new Intent(MainActivity.this, FinderExActivity.class);
+            case R.id.sign_in_button:
+                signIn();
                 break;
-
-            case R.id.btn_logger:
-                Log.d(LOG_TAG, "btn_logger");
-                intent = new Intent(MainActivity.this, LoggerActivity.class);
-                break;
-
-//            case R.id.btn_virtual_orientation:
-//                Log.d(LOG_TAG, "btn_virtual_orientation");
-//                intent = new Intent(MainActivity.this, VirtualOLoggerActivity.class);
-//                break;
-//
-//            case R.id.btn_vo_finder:
-//                Log.d(LOG_TAG, "btn_vo_finder");
-//                intent = new Intent(MainActivity.this, VirtualOFinderActivity.class);
-//                break;
-            case R.id.btn_upload:
-                Log.d(LOG_TAG, "btn_upload");
-                intent = new Intent(MainActivity.this, UploadDefectActivity.class);
-                break;
-
-            case R.id.btn_sign_in:
-                Log.d(LOG_TAG, "btn_sign_in");
-                intent = new Intent(MainActivity.this, SignInActivity.class);
-                break;
-            default:
-                intent = new Intent(MainActivity.this, LoggerActivity.class);
-                break;
+            case R.id.sign_out_button:
+                signOut();
         }
-
-        startActivity(intent);
     }
 
+    private void onPotholeDetectorToggleClicked() {
+        isServiceRunning = !isServiceRunning;
+
+        Intent intent = new Intent(getApplicationContext(), StreetDefectDetectorService.class);
+
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+
+        if (isServiceRunning) {
+            startService(intent);
+
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
+                    .setSmallIcon(android.R.drawable.btn_star)
+                    .setContentTitle("Pothole Finder")
+                    .setContentText("service is running!")
+                    .setOngoing(true);
+            notificationManager.notify(AppSettings.STREET_DEFECT_DETECTOR_NOTIFY_ID, builder.build());
+        } else {
+            stopService(intent);
+            notificationManager.cancelAll();
+        }
+    }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+
+    }
+
+    private void updateLoginButtons(boolean isLoggedIn){
+        if(isLoggedIn) {
+            signInButton.setVisibility(View.GONE);
+            logoutButton.setVisibility(View.VISIBLE);
+            toggleButton.setEnabled(true);
+
+        } else {
+            signInButton.setVisibility(View.VISIBLE);
+            logoutButton.setVisibility(View.GONE);
+            toggleButton.setEnabled(false);
+        }
+    }
 }

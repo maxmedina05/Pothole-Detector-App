@@ -1,6 +1,9 @@
 package com.medmax.potholedetector.views;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.location.Location;
 import android.os.AsyncTask;
@@ -25,6 +28,7 @@ import com.medmax.potholedetector.models.StreetDefect;
 import com.medmax.potholedetector.services.GPSManager;
 import com.medmax.potholedetector.services.HttpService;
 import com.medmax.potholedetector.services.OnGPSUpdateListener;
+import com.medmax.potholedetector.services.StreetDefectDetectorService;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -106,5 +110,24 @@ public class UploadDefectActivity extends Activity implements OnGPSUpdateListene
     @Override
     public void onErrorResponse(VolleyError error) {
         Log.e(LOG_TAG, "response: " + error.toString());
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("NOT AUTHORIZED!");
+        builder.setMessage("Your current session has expired! Please login again!");
+        builder.setOnDismissListener(new DialogInterface.OnDismissListener() {
+            @Override
+            public void onDismiss(DialogInterface dialog) {
+                Intent service = new Intent(getApplicationContext(), StreetDefectDetectorService.class);
+                stopService(service);
+
+                Intent i = getBaseContext().getPackageManager()
+                        .getLaunchIntentForPackage( getBaseContext().getPackageName() );
+                i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                startActivity(i);
+            }
+        });
+        AlertDialog dialog = builder.create();
+        dialog.show();
+
     }
 }

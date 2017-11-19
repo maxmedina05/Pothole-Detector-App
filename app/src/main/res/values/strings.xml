@@ -24,6 +24,7 @@
     <string name="preference_token">preference_token</string>
     <string name="saved_token_id">saved_token_id</string>
     <string name="saved_user_id">saved_user_id</string>
+    <string name="pref_is_compare_x_z">pref_is_compare_x_z</string>
 
     <string-array name="pref_algorithm_list">
         <item>@string/z_thresh_algorithm</item>

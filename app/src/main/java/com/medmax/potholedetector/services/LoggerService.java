@@ -1,16 +1,15 @@
-package com.medmax.potholedetector.views;
+package com.medmax.potholedetector.services;
 
+import android.content.Context;
 import android.os.AsyncTask;
-import android.os.Bundle;
 import android.os.Environment;
-import android.support.annotation.Nullable;
-import android.view.View;
+import android.util.Log;
 
-import com.medmax.potholedetector.BaseSensorActivity;
 import com.medmax.potholedetector.config.AppSettings;
 import com.medmax.potholedetector.utilities.CSVHelper;
 import com.medmax.potholedetector.utilities.DateTimeHelper;
 import com.medmax.potholedetector.utilities.PotholeCSVContract;
+import com.medmax.potholedetector.views.LoggerActivity;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -18,48 +17,43 @@ import java.io.IOException;
 import java.util.Locale;
 
 /**
- * Created by Max Medina on 2017-07-06.
+ * Created by Max Medina on 2017-10-18.
  */
 
-public class LoggerActivity extends BaseSensorActivity {
+public class LoggerService extends BaseSensorService {
 
     // Constants
-    public final static String LOG_TAG = LoggerActivity.class.getSimpleName();
+    private final static String LOG_TAG = LoggerService.class.getSimpleName();
 
     // Variables
-    protected boolean isLogging = false;
     private long mIdSeed = 0;
     private long mLogStartTime = 0;
 
     // Helpers
     private CSVHelper csvHelper;
 
-    @Override
-    protected void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-
+    public LoggerService(Context context) {
+        super(context);
         csvHelper = new CSVHelper();
     }
 
     @Override
-    public void onClick(View v) {
-        isLogging = !isLogging;
-        if (isLogging) {
-            initLogger();
-        } else {
-            stopLogger();
-        }
+    public void onCreate() {
+        super.onCreate();
+        initLogger();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        stopLogger();
     }
 
     @Override
     protected void onAccelerometerSensorChanged(float[] values) {
         super.onAccelerometerSensorChanged(values);
-
-        if(isLogging) {
-            mTimestamp = (System.currentTimeMillis() - mLogStartTime) / 1000.0f;
-
-            new LogTask(++mIdSeed, mTimestamp, mRawAccelerometerValues, lastLatitude, lastLongitude).execute();
-        }
+        mTimestamp = (System.currentTimeMillis() - mLogStartTime) / 1000.0f;
+        new LoggerService.LogTask(++mIdSeed, mTimestamp, mRawAccelerometerValues, lastLatitude, lastLongitude).execute();
     }
 
     private void initLogger() {
@@ -77,7 +71,6 @@ public class LoggerActivity extends BaseSensorActivity {
                 csvHelper.open(exportDir, fileName, true);
                 csvHelper.setHeader(PotholeCSVContract.PotholeCSV.getHeaders());
             } catch (FileNotFoundException e) {
-                sendToast("File was not found!");
                 e.printStackTrace();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -88,7 +81,6 @@ public class LoggerActivity extends BaseSensorActivity {
     private void stopLogger() {
         if (!mPreferenceManager.isDebuggerOn() && csvHelper.isOpen()) {
             try {
-                sendToast(String.format("file %s was created", csvHelper.getCurrentFileName()));
                 csvHelper.close();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -97,20 +89,23 @@ public class LoggerActivity extends BaseSensorActivity {
     }
 
     private synchronized void logData(float timestamp, long logId, float[] data, float latitude, float longitude) throws IOException {
+        String line = String.format(
+                Locale.US,
+                "%d,%s,%s,%.06f,%.6f,%.6f,%.6f,%f,%f",
+                logId,
+                DateTimeHelper.getCurrentDateTime("yyyy-MM-dd hh:mm:ss.SSS"),
+                mDeviceName,
+                timestamp,
+                data[0],
+                data[1],
+                data[2],
+                latitude,
+                longitude);
+
+//        Log.d(LOG_TAG, line);
+
         if (csvHelper.isOpen()) {
-            csvHelper.write(String.format(
-                    Locale.US,
-                    "%d,%s,%s,%.06f,%.6f,%.6f,%.6f,%f,%f",
-                    logId,
-                    DateTimeHelper.getCurrentDateTime("yyyy-MM-dd hh:mm:ss.SSS"),
-                    mDeviceName,
-                    timestamp,
-                    data[0],
-                    data[1],
-                    data[2],
-                    latitude,
-                    longitude)
-            );
+            csvHelper.write(line);
         }
     }
 

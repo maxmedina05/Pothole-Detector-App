@@ -204,6 +204,28 @@ public class PotholeDataFrame {
         return max;
     }
 
+    public double computeMax(int axis) {
+        double max = getAxis(mDataFrame.get(0), axis);
+
+        for (AccData row : mDataFrame) {
+            double x = getAxis(row, axis);
+            max = Math.max(x, max);
+        }
+
+        return max;
+    }
+
+    public double computeMin(int axis) {
+        double min = getAxis(mDataFrame.get(0), axis);
+
+        for (AccData row : mDataFrame) {
+            double x = getAxis(row, axis);
+            min = Math.min(x, min);
+        }
+
+        return min;
+    }
+
     /**
      * Add a new row but with conditions
      * @param row

@@ -27,5 +27,8 @@ public class AppSettings {
     public static final int UPDATE_UI_DELAY = 100;
 
     public static final String PREFERENCE_FILE_KEY = "com.medmax.potholedetector.preference_file_key";
+
+    public static int STREET_DEFECT_DETECTOR_NOTIFY_ID = 100;
+    public static int STREET_DEFECT_FOUND_NOTIFY_ID = 110;
 }
 
